@@ -21,7 +21,10 @@ const areas = [
 
 export const PracticeAreas = () => {
   return (
-    <section id="practice-areas" className="py-24 bg-muted/50">
+    <section id="practice-areas" className="py-28 bg-muted/50 relative overflow-hidden">
+      {/* Decorative element */}
+      <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-secondary/20 to-transparent" />
+      
       <div className="container mx-auto px-4">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -29,8 +32,9 @@ export const PracticeAreas = () => {
           viewport={{ once: true }}
           className="text-center mb-16"
         >
-          <h2 className="text-3xl md:text-5xl font-serif font-bold text-foreground mb-4">
-            Practice <span className="text-secondary">Areas</span>
+          <span className="text-sm font-semibold text-secondary uppercase tracking-widest mb-3 block">What We Do</span>
+          <h2 className="text-3xl md:text-5xl font-serif font-bold text-foreground mb-5">
+            Practice <span className="text-gradient-gold">Areas</span>
           </h2>
           <p className="text-muted-foreground max-w-2xl mx-auto text-lg">
             Comprehensive legal services across every domain of Indian law
@@ -44,13 +48,13 @@ export const PracticeAreas = () => {
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
-              transition={{ delay: i * 0.05 }}
-              className="group bg-card rounded-xl p-6 border border-border hover:border-secondary/40 hover:shadow-lg transition-all cursor-pointer"
+              transition={{ delay: i * 0.04 }}
+              className="group bg-card rounded-xl p-6 border border-border hover:border-secondary/40 hover:shadow-xl hover:shadow-secondary/5 transition-all duration-300 cursor-pointer hover:-translate-y-1"
             >
-              <div className="w-10 h-10 rounded-lg bg-secondary/10 flex items-center justify-center mb-4 group-hover:bg-secondary/20 transition-colors">
-                <area.icon size={20} className="text-secondary" />
+              <div className="w-11 h-11 rounded-xl bg-secondary/10 flex items-center justify-center mb-4 group-hover:bg-secondary group-hover:shadow-lg group-hover:shadow-secondary/20 transition-all duration-300">
+                <area.icon size={20} className="text-secondary group-hover:text-secondary-foreground transition-colors duration-300" />
               </div>
-              <h3 className="font-serif font-semibold text-foreground mb-2">{area.title}</h3>
+              <h3 className="font-serif font-semibold text-foreground mb-2 group-hover:text-secondary transition-colors">{area.title}</h3>
               <p className="text-sm text-muted-foreground leading-relaxed">{area.desc}</p>
             </motion.div>
           ))}

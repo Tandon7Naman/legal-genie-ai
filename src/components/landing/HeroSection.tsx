@@ -1,91 +1,157 @@
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Scale, Shield, Brain } from "lucide-react";
+import { ArrowRight, Scale, Shield, Brain, TrendingUp, Users, FileText } from "lucide-react";
+
+const FloatingOrb = ({ className, delay = 0 }: { className: string; delay?: number }) => (
+  <motion.div
+    animate={{ y: [0, -20, 0], opacity: [0.3, 0.6, 0.3] }}
+    transition={{ duration: 6, repeat: Infinity, delay, ease: "easeInOut" }}
+    className={`absolute rounded-full blur-3xl ${className}`}
+  />
+);
 
 export const HeroSection = () => {
   return (
-    <section className="relative min-h-screen flex items-center bg-primary overflow-hidden pt-16">
+    <section className="relative min-h-screen flex items-center bg-gradient-mesh overflow-hidden pt-16">
+      {/* Floating orbs */}
+      <FloatingOrb className="w-96 h-96 bg-secondary/10 top-20 -left-48" delay={0} />
+      <FloatingOrb className="w-72 h-72 bg-secondary/8 bottom-20 right-10" delay={2} />
+      <FloatingOrb className="w-48 h-48 bg-secondary/5 top-1/2 left-1/3" delay={4} />
+
       {/* Subtle grid pattern */}
-      <div className="absolute inset-0 opacity-5" style={{
-        backgroundImage: "linear-gradient(hsl(var(--gold) / 0.3) 1px, transparent 1px), linear-gradient(90deg, hsl(var(--gold) / 0.3) 1px, transparent 1px)",
-        backgroundSize: "60px 60px",
+      <div className="absolute inset-0 opacity-[0.03]" style={{
+        backgroundImage: "linear-gradient(hsl(43 50% 54% / 0.5) 1px, transparent 1px), linear-gradient(90deg, hsl(43 50% 54% / 0.5) 1px, transparent 1px)",
+        backgroundSize: "80px 80px",
       }} />
 
       <div className="container mx-auto px-4 relative z-10">
-        <div className="grid lg:grid-cols-2 gap-12 items-center">
+        <div className="grid lg:grid-cols-2 gap-16 items-center">
           {/* Left content */}
           <motion.div
-            initial={{ opacity: 0, x: -40 }}
-            animate={{ opacity: 1, x: 0 }}
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8 }}
           >
             <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: 0.2 }}
-              className="inline-flex items-center gap-2 bg-secondary/10 border border-secondary/20 rounded-full px-4 py-1.5 mb-6"
+              className="inline-flex items-center gap-2 bg-secondary/10 border border-secondary/20 rounded-full px-5 py-2 mb-8"
             >
               <span className="w-2 h-2 rounded-full bg-secondary animate-pulse" />
-              <span className="text-sm font-medium text-secondary">AI-Powered Legal Platform</span>
+              <span className="text-sm font-semibold text-secondary tracking-wide">AI-Powered Legal Platform</span>
             </motion.div>
 
-            <h1 className="text-4xl md:text-6xl lg:text-7xl font-serif font-bold text-primary-foreground leading-tight mb-6">
+            <h1 className="text-5xl md:text-6xl lg:text-7xl font-serif font-bold text-primary-foreground leading-[1.1] mb-8">
               Say Hi to{" "}
-              <span className="text-secondary">Tandon</span>{" "}
-              <span className="text-secondary">Associates</span>
+              <br />
+              <span className="text-gradient-gold">Tandon</span>{" "}
+              <span className="text-gradient-gold">Associates</span>
             </h1>
 
-            <p className="text-lg md:text-xl text-primary-foreground/60 max-w-lg mb-8 font-sans leading-relaxed">
+            <p className="text-lg md:text-xl text-primary-foreground/50 max-w-lg mb-10 font-sans leading-relaxed">
               Your trusted legal partner. AI-powered research, case management, and document drafting — built for modern Indian legal professionals.
             </p>
 
-            <div className="flex flex-wrap gap-4">
-              <Button size="lg" className="bg-secondary text-secondary-foreground hover:bg-gold-dark font-semibold text-base px-8 group">
+            <div className="flex flex-wrap gap-4 mb-12">
+              <Button size="lg" className="bg-secondary text-secondary-foreground hover:bg-gold-dark font-semibold text-base px-8 h-13 glow-gold group">
                 Get Started
                 <ArrowRight className="ml-2 group-hover:translate-x-1 transition-transform" size={18} />
               </Button>
-              <Button size="lg" variant="outline" className="border-primary-foreground/20 text-primary-foreground hover:bg-primary-foreground/5 font-semibold text-base px-8">
+              <Button size="lg" variant="outline" className="border-primary-foreground/20 text-primary-foreground hover:bg-primary-foreground/5 font-semibold text-base px-8 h-13">
                 Contact Us
               </Button>
             </div>
+
+            {/* Trust badges */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.8 }}
+              className="flex items-center gap-6 text-primary-foreground/30"
+            >
+              <div className="flex items-center gap-2">
+                <Users size={16} className="text-secondary/60" />
+                <span className="text-sm font-sans">500+ Legal Pros</span>
+              </div>
+              <div className="w-px h-4 bg-primary-foreground/10" />
+              <div className="flex items-center gap-2">
+                <Shield size={16} className="text-secondary/60" />
+                <span className="text-sm font-sans">Bank-grade Security</span>
+              </div>
+              <div className="w-px h-4 bg-primary-foreground/10 hidden sm:block" />
+              <div className="hidden sm:flex items-center gap-2">
+                <TrendingUp size={16} className="text-secondary/60" />
+                <span className="text-sm font-sans">89% Win Rate</span>
+              </div>
+            </motion.div>
           </motion.div>
 
           {/* Right — dashboard mockup */}
           <motion.div
-            initial={{ opacity: 0, x: 40 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.8, delay: 0.3 }}
+            initial={{ opacity: 0, y: 40 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 1, delay: 0.4 }}
             className="hidden lg:block"
           >
-            <div className="bg-navy-light/50 rounded-2xl border border-gold/10 p-6 shadow-2xl backdrop-blur-sm">
-              <div className="flex items-center gap-2 mb-4">
-                <div className="w-3 h-3 rounded-full bg-destructive/60" />
-                <div className="w-3 h-3 rounded-full bg-secondary/60" />
-                <div className="w-3 h-3 rounded-full bg-green-500/60" />
-                <span className="ml-3 text-xs text-primary-foreground/40 font-sans">dashboard.tandonassociates.com</span>
-              </div>
+            <div className="relative">
+              {/* Glow behind card */}
+              <div className="absolute -inset-4 bg-secondary/5 rounded-3xl blur-2xl" />
+              
+              <div className="relative bg-navy-light/60 rounded-2xl border border-secondary/15 p-6 shadow-2xl backdrop-blur-sm">
+                <div className="flex items-center gap-2 mb-5">
+                  <div className="w-3 h-3 rounded-full bg-destructive/60" />
+                  <div className="w-3 h-3 rounded-full bg-secondary/60" />
+                  <div className="w-3 h-3 rounded-full bg-green-500/60" />
+                  <span className="ml-3 text-xs text-primary-foreground/30 font-sans">dashboard.tandonassociates.com</span>
+                </div>
 
-              <div className="grid grid-cols-3 gap-3 mb-4">
-                {[
-                  { label: "Active Cases", value: "24", icon: Scale },
-                  { label: "AI Queries", value: "1,247", icon: Brain },
-                  { label: "Win Rate", value: "89%", icon: Shield },
-                ].map((stat) => (
-                  <div key={stat.label} className="bg-primary/60 rounded-lg p-3 border border-gold/5">
-                    <stat.icon size={16} className="text-secondary mb-1" />
-                    <div className="text-xl font-bold text-primary-foreground font-sans">{stat.value}</div>
-                    <div className="text-xs text-primary-foreground/40">{stat.label}</div>
-                  </div>
-                ))}
-              </div>
+                <div className="grid grid-cols-3 gap-3 mb-5">
+                  {[
+                    { label: "Active Cases", value: "24", icon: Scale, change: "+3" },
+                    { label: "AI Queries", value: "1,247", icon: Brain, change: "+89" },
+                    { label: "Win Rate", value: "89%", icon: Shield, change: "+2%" },
+                  ].map((stat) => (
+                    <div key={stat.label} className="bg-primary/60 rounded-xl p-4 border border-secondary/8 hover:border-secondary/20 transition-colors">
+                      <div className="flex items-center justify-between mb-2">
+                        <stat.icon size={16} className="text-secondary" />
+                        <span className="text-[10px] text-green-400 font-semibold font-sans">{stat.change}</span>
+                      </div>
+                      <div className="text-2xl font-bold text-primary-foreground font-sans">{stat.value}</div>
+                      <div className="text-[11px] text-primary-foreground/35 mt-0.5">{stat.label}</div>
+                    </div>
+                  ))}
+                </div>
 
-              <div className="space-y-2">
-                {["Supreme Court — Sharma v. State of UP", "Delhi HC — Tech Corp IP Dispute", "NCLT — Insolvency Proceedings"].map((c) => (
-                  <div key={c} className="flex items-center justify-between bg-primary/40 rounded-lg p-3 border border-gold/5">
-                    <span className="text-sm text-primary-foreground/70 font-sans">{c}</span>
-                    <span className="text-xs text-secondary font-medium">Active</span>
+                {/* Mini chart placeholder */}
+                <div className="bg-primary/40 rounded-xl p-4 border border-secondary/8 mb-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <span className="text-xs font-semibold text-primary-foreground/50">Recent Cases</span>
+                    <span className="text-[10px] text-secondary font-sans">View all →</span>
                   </div>
-                ))}
+                  <div className="space-y-2.5">
+                    {[
+                      { name: "Sharma v. State of UP", court: "Supreme Court", status: "Active", icon: Scale },
+                      { name: "Tech Corp IP Dispute", court: "Delhi HC", status: "Hearing", icon: FileText },
+                      { name: "Insolvency Proceedings", court: "NCLT", status: "Review", icon: TrendingUp },
+                    ].map((c) => (
+                      <div key={c.name} className="flex items-center gap-3 bg-primary/50 rounded-lg p-2.5 border border-secondary/5">
+                        <div className="w-7 h-7 rounded-md bg-secondary/10 flex items-center justify-center shrink-0">
+                          <c.icon size={13} className="text-secondary" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <span className="text-xs text-primary-foreground/70 font-sans block truncate">{c.name}</span>
+                          <span className="text-[10px] text-primary-foreground/30">{c.court}</span>
+                        </div>
+                        <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${
+                          c.status === "Active" ? "bg-green-500/10 text-green-400" :
+                          c.status === "Hearing" ? "bg-secondary/10 text-secondary" :
+                          "bg-blue-500/10 text-blue-400"
+                        }`}>{c.status}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
               </div>
             </div>
           </motion.div>
