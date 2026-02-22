@@ -56,6 +56,36 @@ export type Database = {
         }
         Relationships: []
       }
+      search_history: {
+        Row: {
+          created_at: string
+          filters: Json | null
+          id: string
+          query_text: string
+          query_type: string
+          result_summary: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          filters?: Json | null
+          id?: string
+          query_text: string
+          query_type?: string
+          result_summary?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          filters?: Json | null
+          id?: string
+          query_text?: string
+          query_type?: string
+          result_summary?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           created_at: string

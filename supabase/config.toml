@@ -1,1 +1,10 @@
 project_id = "flfxjovxeeewldeunetc"
+
+[functions.legal-search]
+verify_jwt = false
+
+[functions.case-analyze]
+verify_jwt = false
+
+[functions.document-draft]
+verify_jwt = false
