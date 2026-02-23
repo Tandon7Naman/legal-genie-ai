@@ -14,6 +14,177 @@ export type Database = {
   }
   public: {
     Tables: {
+      case_notes: {
+        Row: {
+          case_id: string
+          content: string
+          created_at: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          case_id: string
+          content: string
+          created_at?: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          case_id?: string
+          content?: string
+          created_at?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "case_notes_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "cases"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cases: {
+        Row: {
+          case_number: string | null
+          client_id: string | null
+          court: string | null
+          created_at: string
+          description: string | null
+          id: string
+          judge: string | null
+          next_hearing_date: string | null
+          practice_area: string | null
+          status: Database["public"]["Enums"]["case_status"]
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          case_number?: string | null
+          client_id?: string | null
+          court?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          judge?: string | null
+          next_hearing_date?: string | null
+          practice_area?: string | null
+          status?: Database["public"]["Enums"]["case_status"]
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          case_number?: string | null
+          client_id?: string | null
+          court?: string | null
+          created_at?: string
+          description?: string | null
+          id?: string
+          judge?: string | null
+          next_hearing_date?: string | null
+          practice_area?: string | null
+          status?: Database["public"]["Enums"]["case_status"]
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cases_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      clients: {
+        Row: {
+          address: string | null
+          created_at: string
+          email: string | null
+          id: string
+          name: string
+          notes: string | null
+          phone: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          address?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          name: string
+          notes?: string | null
+          phone?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          address?: string | null
+          created_at?: string
+          email?: string | null
+          id?: string
+          name?: string
+          notes?: string | null
+          phone?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      hearings: {
+        Row: {
+          case_id: string
+          court: string | null
+          created_at: string
+          date: string
+          id: string
+          judge: string | null
+          notes: string | null
+          outcome: string | null
+          purpose: string | null
+          user_id: string
+        }
+        Insert: {
+          case_id: string
+          court?: string | null
+          created_at?: string
+          date: string
+          id?: string
+          judge?: string | null
+          notes?: string | null
+          outcome?: string | null
+          purpose?: string | null
+          user_id: string
+        }
+        Update: {
+          case_id?: string
+          court?: string | null
+          created_at?: string
+          date?: string
+          id?: string
+          judge?: string | null
+          notes?: string | null
+          outcome?: string | null
+          purpose?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "hearings_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "cases"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -86,6 +257,47 @@ export type Database = {
         }
         Relationships: []
       }
+      tasks: {
+        Row: {
+          case_id: string
+          completed: boolean
+          created_at: string
+          description: string | null
+          due_date: string | null
+          id: string
+          title: string
+          user_id: string
+        }
+        Insert: {
+          case_id: string
+          completed?: boolean
+          created_at?: string
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          title: string
+          user_id: string
+        }
+        Update: {
+          case_id?: string
+          completed?: boolean
+          created_at?: string
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          title?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tasks_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "cases"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           created_at: string
@@ -127,6 +339,7 @@ export type Database = {
         | "law_firm"
         | "organization"
         | "admin"
+      case_status: "active" | "pending" | "closed" | "won" | "lost" | "settled"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -261,6 +474,7 @@ export const Constants = {
         "organization",
         "admin",
       ],
+      case_status: ["active", "pending", "closed", "won", "lost", "settled"],
     },
   },
 } as const
