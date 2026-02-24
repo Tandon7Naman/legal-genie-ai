@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { useNavigate, Link } from "react-router-dom";
 import {
   LogOut, Shield, Briefcase, Calendar, Search, BarChart3,
-  Zap, Bell, Plus, Sun, Moon, LayoutDashboard,
+  Zap, Bell, Plus, Sun, Moon, LayoutDashboard, Sparkles,
 } from "lucide-react";
 import { motion } from "framer-motion";
 import {
@@ -30,6 +30,7 @@ import { CaseStatsWidget } from "@/components/dashboard/widgets/CaseStatsWidget"
 import { ResearchHistoryWidget } from "@/components/dashboard/widgets/ResearchHistoryWidget";
 import { QuickActionsWidget } from "@/components/dashboard/widgets/QuickActionsWidget";
 import { NotificationsWidget } from "@/components/dashboard/widgets/NotificationsWidget";
+import { ForYouWidget } from "@/components/dashboard/widgets/ForYouWidget";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -45,6 +46,7 @@ interface WidgetConfig {
 
 const ALL_WIDGETS: WidgetConfig[] = [
   { id: "quick-actions", type: "quick-actions" },
+  { id: "for-you", type: "for-you" },
   { id: "notifications", type: "notifications" },
   { id: "case-stats", type: "case-stats" },
   { id: "recent-cases", type: "recent-cases" },
@@ -54,6 +56,7 @@ const ALL_WIDGETS: WidgetConfig[] = [
 
 const WIDGET_META: Record<string, { title: string; icon: React.ReactNode }> = {
   "quick-actions": { title: "Quick Actions", icon: <Zap className="w-4 h-4" /> },
+  "for-you": { title: "For You", icon: <Sparkles className="w-4 h-4" /> },
   "notifications": { title: "Notifications", icon: <Bell className="w-4 h-4" /> },
   "case-stats": { title: "Case Statistics", icon: <BarChart3 className="w-4 h-4" /> },
   "recent-cases": { title: "Recent Cases", icon: <Briefcase className="w-4 h-4" /> },
@@ -63,6 +66,7 @@ const WIDGET_META: Record<string, { title: string; icon: React.ReactNode }> = {
 
 const WIDGET_COMPONENTS: Record<string, React.FC> = {
   "quick-actions": QuickActionsWidget,
+  "for-you": ForYouWidget,
   "notifications": NotificationsWidget,
   "case-stats": CaseStatsWidget,
   "recent-cases": RecentCasesWidget,
