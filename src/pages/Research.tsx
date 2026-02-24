@@ -12,6 +12,7 @@ import { motion } from "framer-motion";
 import { Link, useNavigate } from "react-router-dom";
 import { Search, ArrowLeft, Loader2, History, Sparkles, FileSearch, Filter } from "lucide-react";
 import ReactMarkdown from "react-markdown";
+import { SmartSuggestions } from "@/components/research/SmartSuggestions";
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
@@ -281,6 +282,7 @@ const ResearchPage = () => {
                   </div>
                 </motion.div>
               )}
+              <SmartSuggestions onSuggestionClick={(s) => { setQuery(s); }} />
             </motion.div>
           </TabsContent>
 
