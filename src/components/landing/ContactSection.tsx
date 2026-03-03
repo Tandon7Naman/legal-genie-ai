@@ -51,13 +51,21 @@ export const ContactSection = () => {
           >
             <div className="relative">
               <div className="absolute -inset-3 bg-secondary/5 rounded-3xl blur-2xl" />
-              <form className="relative bg-navy-light/50 rounded-2xl p-8 border border-secondary/12 space-y-5 backdrop-blur-sm">
+              <form className="relative bg-navy-light/50 rounded-2xl p-8 border border-secondary/12 space-y-5 backdrop-blur-sm" onSubmit={(e) => {
+                e.preventDefault();
+                const formData = new FormData(e.currentTarget);
+                const name = formData.get('name');
+                const email = formData.get('email');
+                if (!name || !email) return;
+                e.currentTarget.reset();
+                alert('Thank you for your message! We will get back to you shortly.');
+              }}>
                 <div className="grid sm:grid-cols-2 gap-4">
-                  <Input placeholder="Full Name" className="bg-primary/50 border-secondary/10 text-primary-foreground placeholder:text-primary-foreground/25 h-11 focus:border-secondary/30" />
-                  <Input placeholder="Email" type="email" className="bg-primary/50 border-secondary/10 text-primary-foreground placeholder:text-primary-foreground/25 h-11 focus:border-secondary/30" />
+                  <Input name="name" placeholder="Full Name" required className="bg-primary/50 border-secondary/10 text-primary-foreground placeholder:text-primary-foreground/25 h-11 focus:border-secondary/30" />
+                  <Input name="email" placeholder="Email" type="email" required className="bg-primary/50 border-secondary/10 text-primary-foreground placeholder:text-primary-foreground/25 h-11 focus:border-secondary/30" />
                 </div>
-                <Input placeholder="Phone Number" className="bg-primary/50 border-secondary/10 text-primary-foreground placeholder:text-primary-foreground/25 h-11 focus:border-secondary/30" />
-                <Select>
+                <Input name="phone" placeholder="Phone Number" className="bg-primary/50 border-secondary/10 text-primary-foreground placeholder:text-primary-foreground/25 h-11 focus:border-secondary/30" />
+                <Select name="case_type">
                   <SelectTrigger className="bg-primary/50 border-secondary/10 text-primary-foreground h-11">
                     <SelectValue placeholder="Select Case Type" />
                   </SelectTrigger>
@@ -68,11 +76,12 @@ export const ContactSection = () => {
                   </SelectContent>
                 </Select>
                 <Textarea
+                  name="message"
                   placeholder="Tell us about your inquiry..."
                   rows={4}
                   className="bg-primary/50 border-secondary/10 text-primary-foreground placeholder:text-primary-foreground/25 focus:border-secondary/30"
                 />
-                <Button className="w-full bg-secondary text-secondary-foreground hover:bg-gold-dark font-semibold h-12 glow-gold-sm group">
+                <Button type="submit" className="w-full bg-secondary text-secondary-foreground hover:bg-gold-dark font-semibold h-12 glow-gold-sm group">
                   <Send size={16} className="mr-2 group-hover:translate-x-0.5 transition-transform" />
                   Send Message
                 </Button>

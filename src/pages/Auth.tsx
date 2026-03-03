@@ -55,7 +55,12 @@ const Auth = () => {
           email,
           password,
           options: {
-            data: { full_name: fullName },
+            data: {
+              full_name: fullName,
+              role,
+              ...(role === "student" && institution ? { institution } : {}),
+              ...(role === "student" && gradYear ? { expected_graduation_year: parseInt(gradYear) } : {}),
+            },
             emailRedirectTo: `${window.location.origin}/auth`,
           },
         });
