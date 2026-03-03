@@ -116,6 +116,13 @@ export const PricingSection = () => {
                     ? "bg-secondary text-secondary-foreground hover:bg-gold-dark glow-gold-sm"
                     : "bg-primary text-primary-foreground hover:bg-navy-light"
                 }`}
+                onClick={() => {
+                  if (tier.cta === "Contact Sales") {
+                    document.querySelector('#contact')?.scrollIntoView({ behavior: 'smooth' });
+                  } else {
+                    window.location.href = '/auth';
+                  }
+                }}
               >
                 {tier.cta}
               </Button>

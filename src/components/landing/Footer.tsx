@@ -1,5 +1,30 @@
 import { Link } from "react-router-dom";
 
+const scrollToSection = (id: string) => {
+  const el = document.querySelector(id);
+  el?.scrollIntoView({ behavior: "smooth" });
+};
+
+const footerLinks: Record<string, { label: string; action: () => void }[]> = {
+  Platform: [
+    { label: "Features", action: () => scrollToSection("#features") },
+    { label: "Pricing", action: () => scrollToSection("#pricing") },
+    { label: "Research", action: () => (window.location.href = "/auth") },
+    { label: "Case Management", action: () => (window.location.href = "/auth") },
+  ],
+  Company: [
+    { label: "About", action: () => scrollToSection("#about") },
+    { label: "Team", action: () => scrollToSection("#about") },
+    { label: "Careers", action: () => scrollToSection("#contact") },
+    { label: "Blog", action: () => scrollToSection("#contact") },
+  ],
+  Legal: [
+    { label: "Privacy Policy", action: () => {} },
+    { label: "Terms of Service", action: () => {} },
+    { label: "Disclaimer", action: () => {} },
+  ],
+};
+
 export const Footer = () => {
   return (
     <footer className="bg-primary border-t border-secondary/10 py-14 relative">
@@ -14,19 +39,18 @@ export const Footer = () => {
             </p>
           </div>
 
-          {[
-            { title: "Platform", links: ["Features", "Pricing", "Research", "Case Management"] },
-            { title: "Company", links: ["About", "Team", "Careers", "Blog"] },
-            { title: "Legal", links: ["Privacy Policy", "Terms of Service", "Disclaimer"] },
-          ].map((col) => (
-            <div key={col.title}>
-              <h4 className="font-semibold text-primary-foreground text-xs uppercase tracking-[0.2em] mb-4">{col.title}</h4>
+          {Object.entries(footerLinks).map(([title, links]) => (
+            <div key={title}>
+              <h4 className="font-semibold text-primary-foreground text-xs uppercase tracking-[0.2em] mb-4">{title}</h4>
               <ul className="space-y-2.5">
-                {col.links.map((link) => (
-                  <li key={link}>
-                    <span className="text-sm text-primary-foreground/35 hover:text-secondary cursor-pointer transition-colors">
-                      {link}
-                    </span>
+                {links.map((link) => (
+                  <li key={link.label}>
+                    <button
+                      onClick={link.action}
+                      className="text-sm text-primary-foreground/35 hover:text-secondary transition-colors"
+                    >
+                      {link.label}
+                    </button>
                   </li>
                 ))}
               </ul>
@@ -39,10 +63,20 @@ export const Footer = () => {
             © {new Date().getFullYear()} Tandon Associates. All rights reserved.
           </p>
           <div className="flex items-center gap-6">
-            {["Twitter", "LinkedIn", "GitHub"].map((social) => (
-              <span key={social} className="text-xs text-primary-foreground/25 hover:text-secondary cursor-pointer transition-colors">
-                {social}
-              </span>
+            {[
+              { label: "Twitter", url: "https://twitter.com" },
+              { label: "LinkedIn", url: "https://linkedin.com" },
+              { label: "GitHub", url: "https://github.com" },
+            ].map((social) => (
+              <a
+                key={social.label}
+                href={social.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-xs text-primary-foreground/25 hover:text-secondary transition-colors"
+              >
+                {social.label}
+              </a>
             ))}
           </div>
         </div>
