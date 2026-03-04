@@ -8,12 +8,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { motion } from "framer-motion";
-import { Link, useNavigate } from "react-router-dom";
-import { ArrowLeft, FileText, Loader2, Sparkles, Copy, Check } from "lucide-react";
+import { FileText, Loader2, Sparkles, Copy, Check } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
-const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
 const DOCUMENT_TYPES = [
   { value: "petition", label: "Petition (Civil/Criminal/Writ)" },
@@ -29,9 +27,8 @@ const DOCUMENT_TYPES = [
 ];
 
 const DraftingPage = () => {
-  const { user } = useAuth();
+  const { user, session } = useAuth();
   const { toast } = useToast();
-  const navigate = useNavigate();
 
   const [documentType, setDocumentType] = useState("");
   const [partyA, setPartyA] = useState("");
@@ -58,11 +55,12 @@ const DraftingPage = () => {
     if (additionalDetails) parameters.additionalDetails = additionalDetails;
 
     try {
+      const token = session?.access_token || "";
       const resp = await fetch(`${SUPABASE_URL}/functions/v1/document-draft`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${SUPABASE_KEY}`,
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({ documentType, parameters }),
       });
@@ -81,7 +79,6 @@ const DraftingPage = () => {
         const { done, value } = await reader.read();
         if (done) break;
         buffer += decoder.decode(value, { stream: true });
-
         let idx: number;
         while ((idx = buffer.indexOf("\n")) !== -1) {
           let line = buffer.slice(0, idx);
@@ -93,17 +90,12 @@ const DraftingPage = () => {
           try {
             const parsed = JSON.parse(json);
             const content = parsed.choices?.[0]?.delta?.content;
-            if (content) {
-              accumulated += content;
-              setResult(accumulated);
-            }
+            if (content) { accumulated += content; setResult(accumulated); }
           } catch {}
         }
       }
-
       setLoading(false);
 
-      // Save to history
       if (user) {
         await supabase.from("search_history").insert({
           user_id: user.id,
@@ -126,98 +118,75 @@ const DraftingPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-mesh">
-      <header className="border-b border-border/20 bg-primary/50 backdrop-blur-xl">
-        <div className="container mx-auto flex items-center justify-between px-4 py-4">
-          <div className="flex items-center gap-3">
-            <Button variant="ghost" size="icon" onClick={() => navigate("/dashboard")} className="text-primary-foreground/60 hover:text-secondary">
-              <ArrowLeft className="w-5 h-5" />
-            </Button>
-            <Link to="/" className="font-serif text-xl font-bold text-primary-foreground">
-              Tandon <span className="text-gradient-gold">Associates</span>
-            </Link>
+    <div className="p-6 max-w-4xl mx-auto">
+      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
+        <h1 className="font-serif text-2xl font-bold mb-1">
+          <FileText className="w-6 h-6 inline mr-2 text-secondary" />
+          AI Document Drafting
+        </h1>
+        <p className="text-muted-foreground text-sm mb-6">Generate professional Indian legal documents instantly</p>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+          <div className="md:col-span-2">
+            <Label className="text-xs text-muted-foreground">Document Type *</Label>
+            <Select value={documentType} onValueChange={setDocumentType}>
+              <SelectTrigger className="bg-card/50 border-border/30">
+                <SelectValue placeholder="Select document type..." />
+              </SelectTrigger>
+              <SelectContent>
+                {DOCUMENT_TYPES.map((dt) => (
+                  <SelectItem key={dt.value} value={dt.value}>{dt.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
-          <span className="text-sm text-primary-foreground/40">Document Drafting</span>
+          <div>
+            <Label className="text-xs text-muted-foreground">Party A / Petitioner</Label>
+            <Input value={partyA} onChange={(e) => setPartyA(e.target.value)} placeholder="Name of first party" className="bg-card/50 border-border/30" />
+          </div>
+          <div>
+            <Label className="text-xs text-muted-foreground">Party B / Respondent</Label>
+            <Input value={partyB} onChange={(e) => setPartyB(e.target.value)} placeholder="Name of second party" className="bg-card/50 border-border/30" />
+          </div>
+          <div className="md:col-span-2">
+            <Label className="text-xs text-muted-foreground">Subject / Matter</Label>
+            <Input value={subject} onChange={(e) => setSubject(e.target.value)} placeholder="Brief subject of the document" className="bg-card/50 border-border/30" />
+          </div>
+          <div className="md:col-span-2">
+            <Label className="text-xs text-muted-foreground">Additional Details</Label>
+            <Textarea value={additionalDetails} onChange={(e) => setAdditionalDetails(e.target.value)} placeholder="Any specific terms, conditions, clauses..." rows={4} className="bg-card/50 border-border/30 placeholder:text-muted-foreground/50" />
+          </div>
         </div>
-      </header>
 
-      <main className="container mx-auto px-4 py-8 max-w-4xl">
-        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
-          <h1 className="font-serif text-2xl font-bold text-primary-foreground mb-1">
-            <FileText className="w-6 h-6 inline mr-2 text-secondary" />
-            AI Document Drafting
-          </h1>
-          <p className="text-muted-foreground text-sm mb-6">Generate professional Indian legal documents instantly</p>
+        <Button onClick={handleDraft} disabled={loading || !documentType} className="bg-secondary text-secondary-foreground hover:bg-accent">
+          {loading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Sparkles className="w-4 h-4 mr-2" />}
+          Generate Draft
+        </Button>
+      </motion.div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-            <div className="md:col-span-2">
-              <Label className="text-primary-foreground/80 text-xs">Document Type *</Label>
-              <Select value={documentType} onValueChange={setDocumentType}>
-                <SelectTrigger className="bg-primary/20 border-border/30 text-primary-foreground">
-                  <SelectValue placeholder="Select document type..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {DOCUMENT_TYPES.map((dt) => (
-                    <SelectItem key={dt.value} value={dt.value}>{dt.label}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            <div>
-              <Label className="text-primary-foreground/80 text-xs">Party A / Petitioner</Label>
-              <Input value={partyA} onChange={(e) => setPartyA(e.target.value)} placeholder="Name of first party" className="bg-primary/20 border-border/30 text-primary-foreground" />
-            </div>
-            <div>
-              <Label className="text-primary-foreground/80 text-xs">Party B / Respondent</Label>
-              <Input value={partyB} onChange={(e) => setPartyB(e.target.value)} placeholder="Name of second party" className="bg-primary/20 border-border/30 text-primary-foreground" />
-            </div>
-            <div className="md:col-span-2">
-              <Label className="text-primary-foreground/80 text-xs">Subject / Matter</Label>
-              <Input value={subject} onChange={(e) => setSubject(e.target.value)} placeholder="Brief subject of the document" className="bg-primary/20 border-border/30 text-primary-foreground" />
-            </div>
-            <div className="md:col-span-2">
-              <Label className="text-primary-foreground/80 text-xs">Additional Details</Label>
-              <Textarea
-                value={additionalDetails}
-                onChange={(e) => setAdditionalDetails(e.target.value)}
-                placeholder="Any specific terms, conditions, clauses, or context to include..."
-                rows={4}
-                className="bg-primary/20 border-border/30 text-primary-foreground placeholder:text-muted-foreground/50"
-              />
-            </div>
-          </div>
-
-          <Button onClick={handleDraft} disabled={loading || !documentType} className="bg-secondary text-secondary-foreground hover:bg-accent">
-            {loading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Sparkles className="w-4 h-4 mr-2" />}
-            Generate Draft
-          </Button>
-        </motion.div>
-
-        {(result || loading) && (
-          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="mt-8 p-6 rounded-xl bg-primary/20 border border-border/20">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="font-serif text-lg font-semibold text-primary-foreground flex items-center gap-2">
-                <FileText className="w-5 h-5 text-secondary" /> Generated Document
-              </h3>
-              {result && !loading && (
-                <Button variant="ghost" size="sm" onClick={handleCopy} className="text-muted-foreground hover:text-secondary">
-                  {copied ? <Check className="w-4 h-4 mr-1" /> : <Copy className="w-4 h-4 mr-1" />}
-                  {copied ? "Copied" : "Copy"}
-                </Button>
-              )}
-            </div>
-            <div className="prose prose-sm prose-invert max-w-none [&_h1]:font-serif [&_h2]:font-serif [&_h3]:font-serif [&_strong]:text-secondary">
-              <ReactMarkdown>{result}</ReactMarkdown>
-            </div>
-            {loading && (
-              <div className="flex items-center gap-2 mt-4 text-muted-foreground">
-                <Loader2 className="w-4 h-4 animate-spin" />
-                <span className="text-sm">Drafting document...</span>
-              </div>
+      {(result || loading) && (
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="mt-8 p-6 rounded-xl bg-card/50 border border-border/20">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-serif text-lg font-semibold flex items-center gap-2">
+              <FileText className="w-5 h-5 text-secondary" /> Generated Document
+            </h3>
+            {result && !loading && (
+              <Button variant="ghost" size="sm" onClick={handleCopy} className="text-muted-foreground hover:text-secondary">
+                {copied ? <Check className="w-4 h-4 mr-1" /> : <Copy className="w-4 h-4 mr-1" />}
+                {copied ? "Copied" : "Copy"}
+              </Button>
             )}
-          </motion.div>
-        )}
-      </main>
+          </div>
+          <div className="prose prose-sm dark:prose-invert max-w-none [&_h1]:font-serif [&_h2]:font-serif [&_h3]:font-serif [&_strong]:text-secondary">
+            <ReactMarkdown>{result}</ReactMarkdown>
+          </div>
+          {loading && (
+            <div className="flex items-center gap-2 mt-4 text-muted-foreground">
+              <Loader2 className="w-4 h-4 animate-spin" /><span className="text-sm">Drafting document...</span>
+            </div>
+          )}
+        </motion.div>
+      )}
     </div>
   );
 };
