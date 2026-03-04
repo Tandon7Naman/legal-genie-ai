@@ -5,12 +5,12 @@ const scrollToSection = (id: string) => {
   el?.scrollIntoView({ behavior: "smooth" });
 };
 
-const footerLinks: Record<string, { label: string; action: () => void }[]> = {
+const footerLinks: Record<string, { label: string; action?: () => void; to?: string }[]> = {
   Platform: [
     { label: "Features", action: () => scrollToSection("#features") },
     { label: "Pricing", action: () => scrollToSection("#pricing") },
-    { label: "Research", action: () => (window.location.href = "/auth") },
-    { label: "Case Management", action: () => (window.location.href = "/auth") },
+    { label: "Research", to: "/auth" },
+    { label: "Case Management", to: "/auth" },
   ],
   Company: [
     { label: "About", action: () => scrollToSection("#about") },
@@ -19,9 +19,9 @@ const footerLinks: Record<string, { label: string; action: () => void }[]> = {
     { label: "Blog", action: () => scrollToSection("#contact") },
   ],
   Legal: [
-    { label: "Privacy Policy", action: () => {} },
-    { label: "Terms of Service", action: () => {} },
-    { label: "Disclaimer", action: () => {} },
+    { label: "Privacy Policy", to: "/privacy" },
+    { label: "Terms of Service", to: "/terms" },
+    { label: "Disclaimer", to: "/disclaimer" },
   ],
 };
 
@@ -45,12 +45,18 @@ export const Footer = () => {
               <ul className="space-y-2.5">
                 {links.map((link) => (
                   <li key={link.label}>
-                    <button
-                      onClick={link.action}
-                      className="text-sm text-primary-foreground/35 hover:text-secondary transition-colors"
-                    >
-                      {link.label}
-                    </button>
+                    {link.to ? (
+                      <Link to={link.to} className="text-sm text-primary-foreground/35 hover:text-secondary transition-colors">
+                        {link.label}
+                      </Link>
+                    ) : (
+                      <button
+                        onClick={link.action}
+                        className="text-sm text-primary-foreground/35 hover:text-secondary transition-colors"
+                      >
+                        {link.label}
+                      </button>
+                    )}
                   </li>
                 ))}
               </ul>

@@ -19,6 +19,7 @@ const Auth = () => {
   const [role, setRole] = useState("individual_lawyer");
   const [institution, setInstitution] = useState("");
   const [gradYear, setGradYear] = useState("");
+  const [firmName, setFirmName] = useState("");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -60,6 +61,7 @@ const Auth = () => {
               role,
               ...(role === "student" && institution ? { institution } : {}),
               ...(role === "student" && gradYear ? { expected_graduation_year: parseInt(gradYear) } : {}),
+              ...((role === "law_firm" || role === "organization") && firmName ? { firm_name: firmName } : {}),
             },
             emailRedirectTo: `${window.location.origin}/auth`,
           },
@@ -176,6 +178,16 @@ const Auth = () => {
                         className="bg-background/10 border-border/30 text-primary-foreground"
                       />
                     </div>
+                  </div>
+                )}
+                {(role === "law_firm" || role === "organization") && (
+                  <div>
+                    <Label className="text-primary-foreground/80 text-xs">{role === "law_firm" ? "Firm Name" : "Organization Name"}</Label>
+                    <Input
+                      value={firmName}
+                      onChange={(e) => setFirmName(e.target.value)}
+                      className="bg-background/10 border-border/30 text-primary-foreground"
+                    />
                   </div>
                 )}
               </>

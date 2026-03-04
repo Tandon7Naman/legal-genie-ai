@@ -26,6 +26,8 @@ interface AuthContextType {
   signOut: () => Promise<void>;
 }
 
+export type { UserRole };
+
 const AuthContext = createContext<AuthContextType>({
   session: null,
   user: null,
