@@ -9,49 +9,34 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { motion } from "framer-motion";
-import { Search, Loader2, History, Sparkles, FileSearch, Filter } from "lucide-react";
+import { Search, Loader2, History, Sparkles, FileSearch, Filter, Copy, Check, Trash2 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { SmartSuggestions } from "@/components/research/SmartSuggestions";
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 
 async function streamFromEdge({
-  functionName,
-  body,
-  onDelta,
-  onDone,
-  token,
+  functionName, body, onDelta, onDone, token,
 }: {
-  functionName: string;
-  body: Record<string, unknown>;
-  onDelta: (text: string) => void;
-  onDone: () => void;
-  token: string;
+  functionName: string; body: Record<string, unknown>; onDelta: (text: string) => void; onDone: () => void; token: string;
 }) {
   const resp = await fetch(`${SUPABASE_URL}/functions/v1/${functionName}`, {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-    },
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
     body: JSON.stringify(body),
   });
-
   if (!resp.ok) {
     const err = await resp.json().catch(() => ({ error: "Request failed" }));
     throw new Error(err.error || `Error ${resp.status}`);
   }
-
   if (!resp.body) throw new Error("No response body");
   const reader = resp.body.getReader();
   const decoder = new TextDecoder();
   let buffer = "";
-
   while (true) {
     const { done, value } = await reader.read();
     if (done) break;
     buffer += decoder.decode(value, { stream: true });
-
     let idx: number;
     while ((idx = buffer.indexOf("\n")) !== -1) {
       let line = buffer.slice(0, idx);
@@ -87,7 +72,7 @@ const ResearchPage = () => {
   const [activeTab, setActiveTab] = useState("search");
   const [searchHistory, setSearchHistory] = useState<{ id: string; query_text: string; query_type: string; created_at: string }[]>([]);
   const [historyLoaded, setHistoryLoaded] = useState(false);
-  const resultRef = useRef<HTMLDivElement>(null);
+  const [copied, setCopied] = useState(false);
 
   const getToken = () => session?.access_token || "";
 
@@ -108,6 +93,11 @@ const ResearchPage = () => {
       user_id: user.id, query_text: queryText, query_type: queryType, filters,
     });
     setHistoryLoaded(false);
+  };
+
+  const deleteHistoryItem = async (id: string) => {
+    await supabase.from("search_history").delete().eq("id", id);
+    setSearchHistory((prev) => prev.filter((h) => h.id !== id));
   };
 
   const handleSearch = async () => {
@@ -155,6 +145,13 @@ const ResearchPage = () => {
       toast({ title: "Error", description: err.message, variant: "destructive" });
       setLoading(false);
     }
+  };
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(result);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+    toast({ title: "Copied to clipboard" });
   };
 
   return (
@@ -222,7 +219,7 @@ const ResearchPage = () => {
                   <Select value={subjectArea} onValueChange={setSubjectArea}>
                     <SelectTrigger className="bg-background/50 border-border/30 text-sm"><SelectValue placeholder="All areas" /></SelectTrigger>
                     <SelectContent>
-                      {["Criminal", "Civil", "Corporate", "Constitutional", "Family", "IP", "Tax", "Labour", "Cyber", "Environmental", "Banking", "Arbitration", "Real Estate"].map(a => (
+                      {["Criminal", "Civil", "Corporate", "Constitutional", "Family", "IP", "Tax", "Labour", "Cyber", "Environmental", "Banking", "Arbitration", "Real Estate"].map((a) => (
                         <SelectItem key={a} value={a.toLowerCase()}>{a} Law</SelectItem>
                       ))}
                     </SelectContent>
@@ -239,7 +236,7 @@ const ResearchPage = () => {
             <Textarea
               value={caseDetails}
               onChange={(e) => setCaseDetails(e.target.value)}
-              placeholder="Paste or type your case details here for AI analysis..."
+              placeholder="Paste or type your case details here for AI analysis. Include facts, parties involved, applicable law, and any specific questions..."
               rows={8}
               className="bg-card/50 border-border/30 placeholder:text-muted-foreground/50"
             />
@@ -256,20 +253,24 @@ const ResearchPage = () => {
               <p className="text-center text-muted-foreground py-10">No search history yet</p>
             ) : (
               searchHistory.map((item) => (
-                <button
-                  key={item.id}
-                  onClick={() => {
-                    if (item.query_type === "analyze") { setCaseDetails(item.query_text); setActiveTab("analyze"); }
-                    else { setQuery(item.query_text); setActiveTab("search"); }
-                  }}
-                  className="w-full text-left p-3 rounded-lg bg-card/50 border border-border/20 hover:border-secondary/30 transition-colors"
-                >
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="text-xs px-2 py-0.5 rounded bg-secondary/20 text-secondary capitalize">{item.query_type}</span>
-                    <span className="text-xs text-muted-foreground">{new Date(item.created_at).toLocaleDateString()}</span>
-                  </div>
-                  <p className="text-sm truncate">{item.query_text}</p>
-                </button>
+                <div key={item.id} className="flex items-center gap-2">
+                  <button
+                    onClick={() => {
+                      if (item.query_type === "analyze") { setCaseDetails(item.query_text); setActiveTab("analyze"); }
+                      else { setQuery(item.query_text); setActiveTab("search"); }
+                    }}
+                    className="flex-1 text-left p-3 rounded-lg bg-card/50 border border-border/20 hover:border-secondary/30 transition-colors"
+                  >
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-xs px-2 py-0.5 rounded bg-secondary/20 text-secondary capitalize">{item.query_type}</span>
+                      <span className="text-xs text-muted-foreground">{new Date(item.created_at).toLocaleDateString()}</span>
+                    </div>
+                    <p className="text-sm truncate">{item.query_text}</p>
+                  </button>
+                  <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive shrink-0" onClick={() => deleteHistoryItem(item.id)}>
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </Button>
+                </div>
               ))
             )}
           </motion.div>
@@ -277,11 +278,19 @@ const ResearchPage = () => {
       </Tabs>
 
       {(result || loading) && (
-        <motion.div ref={resultRef} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="mt-8 p-6 rounded-xl bg-card/50 border border-border/20">
-          <h3 className="font-serif text-lg font-semibold mb-4 flex items-center gap-2">
-            <Sparkles className="w-5 h-5 text-secondary" />
-            {activeTab === "search" ? "Research Results" : "Case Analysis"}
-          </h3>
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="mt-8 p-6 rounded-xl bg-card/50 border border-border/20">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-serif text-lg font-semibold flex items-center gap-2">
+              <Sparkles className="w-5 h-5 text-secondary" />
+              {activeTab === "search" ? "Research Results" : "Case Analysis"}
+            </h3>
+            {result && !loading && (
+              <Button variant="ghost" size="sm" onClick={handleCopy} className="text-muted-foreground hover:text-secondary">
+                {copied ? <Check className="w-4 h-4 mr-1" /> : <Copy className="w-4 h-4 mr-1" />}
+                {copied ? "Copied" : "Copy"}
+              </Button>
+            )}
+          </div>
           <div className="prose prose-sm dark:prose-invert max-w-none [&_h1]:font-serif [&_h2]:font-serif [&_h3]:font-serif [&_strong]:text-secondary [&_a]:text-secondary">
             <ReactMarkdown>{result}</ReactMarkdown>
           </div>

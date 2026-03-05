@@ -138,6 +138,44 @@ export type Database = {
         }
         Relationships: []
       }
+      communication_log: {
+        Row: {
+          client_id: string
+          content: string
+          created_at: string
+          id: string
+          subject: string | null
+          type: string
+          user_id: string
+        }
+        Insert: {
+          client_id: string
+          content: string
+          created_at?: string
+          id?: string
+          subject?: string | null
+          type?: string
+          user_id: string
+        }
+        Update: {
+          client_id?: string
+          content?: string
+          created_at?: string
+          id?: string
+          subject?: string | null
+          type?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "communication_log_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       hearings: {
         Row: {
           case_id: string
@@ -192,6 +230,7 @@ export type Database = {
           created_at: string
           expected_graduation_year: number | null
           firm_name: string | null
+          free_access: boolean
           full_name: string | null
           id: string
           institution: string | null
@@ -205,6 +244,7 @@ export type Database = {
           created_at?: string
           expected_graduation_year?: number | null
           firm_name?: string | null
+          free_access?: boolean
           full_name?: string | null
           id?: string
           institution?: string | null
@@ -218,6 +258,7 @@ export type Database = {
           created_at?: string
           expected_graduation_year?: number | null
           firm_name?: string | null
+          free_access?: boolean
           full_name?: string | null
           id?: string
           institution?: string | null
