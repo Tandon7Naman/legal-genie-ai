@@ -136,10 +136,10 @@ const CasesPage = () => {
                 </div>
                 <div>
                   <Label className="text-muted-foreground text-xs">Link Client</Label>
-                  <Select value={form.client_id} onValueChange={(v) => setForm({ ...form, client_id: v })}>
+                  <Select value={form.client_id || "none"} onValueChange={(v) => setForm({ ...form, client_id: v === "none" ? "" : v })}>
                     <SelectTrigger className="bg-background/50 border-border/30"><SelectValue placeholder="Select client (optional)" /></SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">None</SelectItem>
+                      <SelectItem value="none">None</SelectItem>
                       {clients.map((c) => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
                     </SelectContent>
                   </Select>
