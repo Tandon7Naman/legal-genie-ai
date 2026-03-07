@@ -27,6 +27,7 @@ const mainItems = [
   { title: "Drafting", url: "/drafting", icon: FileText },
   { title: "Cases", url: "/cases", icon: Briefcase },
   { title: "Clients", url: "/clients", icon: Users },
+  { title: "eCourts", url: "/ecourts", icon: Scale },
 ];
 
 export function AppSidebar() {
