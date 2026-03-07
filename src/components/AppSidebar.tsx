@@ -1,6 +1,6 @@
 import {
   LayoutDashboard, Search, FileText, Briefcase, Users,
-  Shield, Settings, LogOut, Sun, Moon,
+  Shield, Settings, LogOut, Sun, Moon, Scale,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -27,6 +27,7 @@ const mainItems = [
   { title: "Drafting", url: "/drafting", icon: FileText },
   { title: "Cases", url: "/cases", icon: Briefcase },
   { title: "Clients", url: "/clients", icon: Users },
+  { title: "eCourts", url: "/ecourts", icon: Scale },
 ];
 
 export function AppSidebar() {
