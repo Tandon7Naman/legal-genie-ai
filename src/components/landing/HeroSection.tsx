@@ -43,14 +43,14 @@ export const HeroSection = () => {
             </motion.div>
 
             <h1 className="text-5xl md:text-6xl lg:text-7xl font-serif font-bold text-primary-foreground leading-[1.1] mb-8">
-              Say Hi to{" "}
+              AI-Powered Legal{" "}
               <br />
-              <span className="text-gradient-gold">Tandon</span>{" "}
-              <span className="text-gradient-gold">Associates</span>
+              <span className="text-gradient-gold">Research</span> &{" "}
+              <span className="text-gradient-gold">Practice</span>
             </h1>
 
             <p className="text-lg md:text-xl text-primary-foreground/50 max-w-lg mb-10 font-sans leading-relaxed">
-              Your trusted legal partner. AI-powered research, case management, and document drafting — built for modern Indian legal professionals.
+              India's intelligent legal platform. AI-powered research, case management, and document drafting — built for lawyers, firms, and law students.
             </p>
 
             <div className="flex flex-wrap gap-4 mb-12">
