@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/command";
 import {
   Briefcase, Users, Search, FileText, LayoutDashboard, Settings,
-  Scale, History,
+  Scale, History, GraduationCap,
 } from "lucide-react";
 
 interface SearchResult {
@@ -126,6 +126,7 @@ export function GlobalSearch() {
     { id: "nav-cases", title: "Cases", icon: <Briefcase className="h-4 w-4" />, action: () => go("/cases") },
     { id: "nav-clients", title: "Clients", icon: <Users className="h-4 w-4" />, action: () => go("/clients") },
     { id: "nav-ecourts", title: "eCourts Tracker", icon: <Scale className="h-4 w-4" />, action: () => go("/ecourts") },
+    { id: "nav-student", title: "Student Hub", icon: <GraduationCap className="h-4 w-4" />, action: () => go("/student-tools") },
     { id: "nav-settings", title: "Settings", icon: <Settings className="h-4 w-4" />, action: () => go("/settings") },
   ];
 

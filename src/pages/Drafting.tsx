@@ -8,8 +8,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { motion } from "framer-motion";
-import { FileText, Loader2, Sparkles, Copy, Check, List, BarChart3, BookOpen } from "lucide-react";
+import { FileText, Loader2, Sparkles, Copy, Check, List, BarChart3, BookOpen, Users } from "lucide-react";
 import ReactMarkdown from "react-markdown";
+import { CollaborativeEditor } from "@/components/collaboration/CollaborativeEditor";
+import { useSearchParams } from "react-router-dom";
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 
@@ -77,6 +79,16 @@ const DraftingPage = () => {
   const [loading, setLoading] = useState(false);
   const [copied, setCopied] = useState(false);
   const [showToc, setShowToc] = useState(true);
+  const [showCollab, setShowCollab] = useState(false);
+  const [searchParams] = useSearchParams();
+  const collabId = searchParams.get("collab");
+
+  // Auto-open collab if link has collab param
+  useState(() => {
+    if (collabId) setShowCollab(true);
+  });
+
+  const collabDocId = collabId || `draft-${user?.id || "anon"}-${Date.now()}`;
 
   const headings = useMemo(() => extractHeadings(result), [result]);
   const stats = useMemo(() => computeStats(result), [result]);
@@ -207,11 +219,24 @@ const DraftingPage = () => {
           </div>
         </div>
 
-        <Button onClick={handleDraft} disabled={loading || !documentType} className="bg-secondary text-secondary-foreground hover:bg-accent">
-          {loading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Sparkles className="w-4 h-4 mr-2" />}
-          Generate Draft
-        </Button>
+        <div className="flex items-center gap-3">
+          <Button onClick={handleDraft} disabled={loading || !documentType} className="bg-secondary text-secondary-foreground hover:bg-accent">
+            {loading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Sparkles className="w-4 h-4 mr-2" />}
+            Generate Draft
+          </Button>
+          <Button variant="outline" onClick={() => setShowCollab(!showCollab)} className="border-border/30 text-muted-foreground hover:text-secondary">
+            <Users className="w-4 h-4 mr-2" />
+            {showCollab ? "Hide" : "Collaborate"}
+          </Button>
+        </div>
       </motion.div>
+
+      {/* Collaborative Editor */}
+      {showCollab && (
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="mt-6">
+          <CollaborativeEditor documentId={collabDocId} initialContent={result} />
+        </motion.div>
+      )}
 
       {(result || loading) && (
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="mt-8">

@@ -12,6 +12,7 @@ import { motion } from "framer-motion";
 import { Search, Loader2, History, Sparkles, FileSearch, Filter, Copy, Check, Trash2 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { SmartSuggestions } from "@/components/research/SmartSuggestions";
+import { SourceQualityPanel } from "@/components/research/SourceQualityPanel";
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 
@@ -278,27 +279,34 @@ const ResearchPage = () => {
       </Tabs>
 
       {(result || loading) && (
-        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="mt-8 p-6 rounded-xl bg-card/50 border border-border/20">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="font-serif text-lg font-semibold flex items-center gap-2">
-              <Sparkles className="w-5 h-5 text-secondary" />
-              {activeTab === "search" ? "Research Results" : "Case Analysis"}
-            </h3>
-            {result && !loading && (
-              <Button variant="ghost" size="sm" onClick={handleCopy} className="text-muted-foreground hover:text-secondary">
-                {copied ? <Check className="w-4 h-4 mr-1" /> : <Copy className="w-4 h-4 mr-1" />}
-                {copied ? "Copied" : "Copy"}
-              </Button>
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="mt-8">
+          {/* Source Quality Assessment */}
+          {result && activeTab === "search" && !loading && (
+            <SourceQualityPanel markdown={result} />
+          )}
+
+          <div className="p-6 rounded-xl bg-card/50 border border-border/20">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-serif text-lg font-semibold flex items-center gap-2">
+                <Sparkles className="w-5 h-5 text-secondary" />
+                {activeTab === "search" ? "Research Results" : "Case Analysis"}
+              </h3>
+              {result && !loading && (
+                <Button variant="ghost" size="sm" onClick={handleCopy} className="text-muted-foreground hover:text-secondary">
+                  {copied ? <Check className="w-4 h-4 mr-1" /> : <Copy className="w-4 h-4 mr-1" />}
+                  {copied ? "Copied" : "Copy"}
+                </Button>
+              )}
+            </div>
+            <div className="prose prose-sm dark:prose-invert max-w-none [&_h1]:font-serif [&_h2]:font-serif [&_h3]:font-serif [&_strong]:text-secondary [&_a]:text-secondary">
+              <ReactMarkdown>{result}</ReactMarkdown>
+            </div>
+            {loading && (
+              <div className="flex items-center gap-2 mt-4 text-muted-foreground">
+                <Loader2 className="w-4 h-4 animate-spin" /><span className="text-sm">Generating response...</span>
+              </div>
             )}
           </div>
-          <div className="prose prose-sm dark:prose-invert max-w-none [&_h1]:font-serif [&_h2]:font-serif [&_h3]:font-serif [&_strong]:text-secondary [&_a]:text-secondary">
-            <ReactMarkdown>{result}</ReactMarkdown>
-          </div>
-          {loading && (
-            <div className="flex items-center gap-2 mt-4 text-muted-foreground">
-              <Loader2 className="w-4 h-4 animate-spin" /><span className="text-sm">Generating response...</span>
-            </div>
-          )}
         </motion.div>
       )}
     </div>

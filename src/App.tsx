@@ -13,6 +13,7 @@ import Dashboard from "./pages/Dashboard";
 import Research from "./pages/Research";
 import Drafting from "./pages/Drafting";
 import ECourts from "./pages/ECourts";
+import StudentTools from "./pages/StudentTools";
 import Admin from "./pages/Admin";
 import Cases from "./pages/Cases";
 import CaseDetail from "./pages/CaseDetail";
@@ -43,6 +44,7 @@ const App = () => (
             <Route path="/research" element={<ProtectedRoute><AppLayout><Research /></AppLayout></ProtectedRoute>} />
             <Route path="/drafting" element={<ProtectedRoute><AppLayout><Drafting /></AppLayout></ProtectedRoute>} />
             <Route path="/ecourts" element={<ProtectedRoute><AppLayout><ECourts /></AppLayout></ProtectedRoute>} />
+            <Route path="/student-tools" element={<ProtectedRoute><AppLayout><StudentTools /></AppLayout></ProtectedRoute>} />
             <Route path="/admin" element={<ProtectedRoute requireAdmin><AppLayout><Admin /></AppLayout></ProtectedRoute>} />
             <Route path="/cases" element={<ProtectedRoute><AppLayout><Cases /></AppLayout></ProtectedRoute>} />
             <Route path="/cases/:id" element={<ProtectedRoute><AppLayout><CaseDetail /></AppLayout></ProtectedRoute>} />

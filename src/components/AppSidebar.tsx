@@ -1,6 +1,6 @@
 import {
   LayoutDashboard, Search, FileText, Briefcase, Users,
-  Shield, Settings, LogOut, Sun, Moon, Scale,
+  Shield, Settings, LogOut, Sun, Moon, Scale, GraduationCap,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -28,6 +28,7 @@ const mainItems = [
   { title: "Cases", url: "/cases", icon: Briefcase },
   { title: "Clients", url: "/clients", icon: Users },
   { title: "eCourts", url: "/ecourts", icon: Scale },
+  { title: "Student Hub", url: "/student-tools", icon: GraduationCap },
 ];
 
 export function AppSidebar() {
