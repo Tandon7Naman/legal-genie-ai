@@ -79,10 +79,10 @@ export const HeroSection = () => {
                 <Shield size={16} className="text-secondary/60" />
                 <span className="text-sm font-sans">Bank-grade Security</span>
               </div>
-              <div className="w-px h-4 bg-primary-foreground/10 hidden sm:block" />
-              <div className="hidden sm:flex items-center gap-2">
+              <div className="w-px h-4 bg-primary-foreground/10" />
+              <div className="flex items-center gap-2">
                 <TrendingUp size={16} className="text-secondary/60" />
-                <span className="text-sm font-sans">89% Win Rate</span>
+                <span className="text-sm font-sans">Data Hosted in India</span>
               </div>
             </motion.div>
           </motion.div>
