@@ -59,7 +59,8 @@ export const ContactSection = () => {
               <form className="relative bg-navy-light/50 rounded-2xl p-8 border border-secondary/12 space-y-5 backdrop-blur-sm" onSubmit={async (e) => {
                 e.preventDefault();
                 setLoading(true);
-                const formData = new FormData(e.currentTarget);
+                const form = e.currentTarget;
+                const formData = new FormData(form);
                 const name = formData.get('name') as string;
                 const email = formData.get('email') as string;
                 const phone = formData.get('phone') as string;
@@ -82,7 +83,7 @@ export const ContactSection = () => {
 
                   if (error) throw error;
 
-                  e.currentTarget.reset();
+                  form.reset();
                   toast({ title: "Message Sent!", description: "Thank you for reaching out. We'll get back to you within 24 hours." });
                 } catch {
                   toast({ title: "Error", description: "Something went wrong. Please try again or email us directly.", variant: "destructive" });
