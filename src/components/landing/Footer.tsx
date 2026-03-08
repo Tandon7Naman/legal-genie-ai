@@ -14,9 +14,8 @@ const footerLinks: Record<string, { label: string; action?: () => void; to?: str
   ],
   Company: [
     { label: "About", action: () => scrollToSection("#about") },
-    { label: "Team", action: () => scrollToSection("#about") },
-    { label: "Careers", action: () => scrollToSection("#contact") },
-    { label: "Blog", action: () => scrollToSection("#contact") },
+    { label: "Our Team", action: () => scrollToSection("#about") },
+    { label: "Contact Us", action: () => scrollToSection("#contact") },
   ],
   Legal: [
     { label: "Privacy Policy", to: "/privacy" },
