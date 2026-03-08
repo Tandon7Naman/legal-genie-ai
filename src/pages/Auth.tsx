@@ -10,6 +10,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
+import { Loader2 } from "lucide-react";
 
 const Auth = () => {
   const [mode, setMode] = useState<"login" | "signup" | "forgot">("login");
@@ -231,7 +232,8 @@ const Auth = () => {
               disabled={loading}
               className="w-full bg-secondary text-secondary-foreground hover:bg-accent font-semibold"
             >
-              {loading ? "Loading..." : mode === "login" ? "Sign In" : mode === "signup" ? "Create Account" : "Send Reset Link"}
+              {loading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+              {loading ? "Please wait..." : mode === "login" ? "Sign In" : mode === "signup" ? "Create Account" : "Send Reset Link"}
             </Button>
           </form>
 

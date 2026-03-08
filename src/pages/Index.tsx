@@ -7,19 +7,21 @@ import { PricingSection } from "@/components/landing/PricingSection";
 import { AboutSection } from "@/components/landing/AboutSection";
 import { ContactSection } from "@/components/landing/ContactSection";
 import { Footer } from "@/components/landing/Footer";
+import { CookieConsent } from "@/components/landing/CookieConsent";
 
 const Index = () => {
   return (
     <div className="min-h-screen">
       <Navbar />
       <HeroSection />
-      <PracticeAreas />
       <FeaturesSection />
+      <PracticeAreas />
       <SocialProofSection />
       <PricingSection />
       <AboutSection />
       <ContactSection />
       <Footer />
+      <CookieConsent />
     </div>
   );
 };

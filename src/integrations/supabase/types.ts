@@ -176,6 +176,36 @@ export type Database = {
           },
         ]
       }
+      contact_submissions: {
+        Row: {
+          case_type: string | null
+          created_at: string
+          email: string
+          id: string
+          message: string | null
+          name: string
+          phone: string | null
+        }
+        Insert: {
+          case_type?: string | null
+          created_at?: string
+          email: string
+          id?: string
+          message?: string | null
+          name: string
+          phone?: string | null
+        }
+        Update: {
+          case_type?: string | null
+          created_at?: string
+          email?: string
+          id?: string
+          message?: string | null
+          name?: string
+          phone?: string | null
+        }
+        Relationships: []
+      }
       hearings: {
         Row: {
           case_id: string
