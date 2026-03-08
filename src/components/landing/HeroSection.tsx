@@ -55,11 +55,11 @@ export const HeroSection = () => {
 
             <div className="flex flex-wrap gap-4 mb-12">
               <Button size="lg" className="bg-secondary text-secondary-foreground hover:bg-gold-dark font-semibold text-base px-8 h-13 glow-gold group" onClick={() => window.location.href = '/auth'}>
-                Get Started
+                Start Free Trial
                 <ArrowRight className="ml-2 group-hover:translate-x-1 transition-transform" size={18} />
               </Button>
-              <Button size="lg" variant="outline" className="border-primary-foreground/20 text-primary-foreground hover:bg-primary-foreground/5 font-semibold text-base px-8 h-13" onClick={() => document.querySelector('#contact')?.scrollIntoView({ behavior: 'smooth' })}>
-                Contact Us
+              <Button size="lg" variant="outline" className="border-primary-foreground/20 text-primary-foreground hover:bg-primary-foreground/5 font-semibold text-base px-8 h-13" onClick={() => document.querySelector('#features')?.scrollIntoView({ behavior: 'smooth' })}>
+                See How It Works
               </Button>
             </div>
 
