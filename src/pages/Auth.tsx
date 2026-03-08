@@ -232,7 +232,8 @@ const Auth = () => {
               disabled={loading}
               className="w-full bg-secondary text-secondary-foreground hover:bg-accent font-semibold"
             >
-              {loading ? "Loading..." : mode === "login" ? "Sign In" : mode === "signup" ? "Create Account" : "Send Reset Link"}
+              {loading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
+              {loading ? "Please wait..." : mode === "login" ? "Sign In" : mode === "signup" ? "Create Account" : "Send Reset Link"}
             </Button>
           </form>
 

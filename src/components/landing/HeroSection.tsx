@@ -1,6 +1,6 @@
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Scale, Shield, Brain, TrendingUp, Users, FileText, MapPin } from "lucide-react";
+import { ArrowRight, Scale, Shield, Brain, TrendingUp, Users, FileText } from "lucide-react";
 
 const FloatingOrb = ({ className, delay = 0 }: { className: string; delay?: number }) => (
   <motion.div
@@ -13,12 +13,10 @@ const FloatingOrb = ({ className, delay = 0 }: { className: string; delay?: numb
 export const HeroSection = () => {
   return (
     <section className="relative min-h-screen flex items-center bg-gradient-mesh overflow-hidden pt-16">
-      {/* Floating orbs */}
       <FloatingOrb className="w-96 h-96 bg-secondary/10 top-20 -left-48" delay={0} />
       <FloatingOrb className="w-72 h-72 bg-secondary/8 bottom-20 right-10" delay={2} />
       <FloatingOrb className="w-48 h-48 bg-secondary/5 top-1/2 left-1/3" delay={4} />
 
-      {/* Subtle grid pattern */}
       <div className="absolute inset-0 opacity-[0.03]" style={{
         backgroundImage: "linear-gradient(hsl(43 50% 54% / 0.5) 1px, transparent 1px), linear-gradient(90deg, hsl(43 50% 54% / 0.5) 1px, transparent 1px)",
         backgroundSize: "80px 80px",
@@ -63,23 +61,23 @@ export const HeroSection = () => {
               </Button>
             </div>
 
-            {/* Trust badges */}
+            {/* Trust badges — flex-wrap for mobile */}
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.8 }}
-              className="flex items-center gap-6 text-primary-foreground/30"
+              className="flex flex-wrap items-center gap-4 sm:gap-6 text-primary-foreground/30"
             >
               <div className="flex items-center gap-2">
                 <Users size={16} className="text-secondary/60" />
                 <span className="text-sm font-sans">500+ Legal Pros</span>
               </div>
-              <div className="w-px h-4 bg-primary-foreground/10" />
+              <div className="hidden sm:block w-px h-4 bg-primary-foreground/10" />
               <div className="flex items-center gap-2">
                 <Shield size={16} className="text-secondary/60" />
                 <span className="text-sm font-sans">Bank-grade Security</span>
               </div>
-              <div className="w-px h-4 bg-primary-foreground/10" />
+              <div className="hidden sm:block w-px h-4 bg-primary-foreground/10" />
               <div className="flex items-center gap-2">
                 <TrendingUp size={16} className="text-secondary/60" />
                 <span className="text-sm font-sans">Data Hosted in India</span>
@@ -87,7 +85,7 @@ export const HeroSection = () => {
             </motion.div>
           </motion.div>
 
-          {/* Right — dashboard mockup */}
+          {/* Right — dashboard mockup (desktop) */}
           <motion.div
             initial={{ opacity: 0, y: 40 }}
             animate={{ opacity: 1, y: 0 }}
@@ -95,7 +93,6 @@ export const HeroSection = () => {
             className="hidden lg:block"
           >
             <div className="relative">
-              {/* Glow behind card */}
               <div className="absolute -inset-4 bg-secondary/5 rounded-3xl blur-2xl" />
               
               <div className="relative bg-navy-light/60 rounded-2xl border border-secondary/15 p-6 shadow-2xl backdrop-blur-sm">
@@ -123,7 +120,6 @@ export const HeroSection = () => {
                   ))}
                 </div>
 
-                {/* Mini chart placeholder */}
                 <div className="bg-primary/40 rounded-xl p-4 border border-secondary/8 mb-4">
                   <div className="flex items-center justify-between mb-3">
                     <span className="text-xs font-semibold text-primary-foreground/50">Recent Cases</span>
@@ -153,6 +149,28 @@ export const HeroSection = () => {
                   </div>
                 </div>
               </div>
+            </div>
+          </motion.div>
+
+          {/* Mobile — compact stats */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, delay: 0.5 }}
+            className="lg:hidden"
+          >
+            <div className="grid grid-cols-3 gap-3">
+              {[
+                { label: "Active Cases", value: "24", icon: Scale },
+                { label: "AI Queries", value: "1,247", icon: Brain },
+                { label: "Documents", value: "156", icon: FileText },
+              ].map((stat) => (
+                <div key={stat.label} className="bg-navy-light/40 rounded-xl p-4 border border-secondary/10 text-center">
+                  <stat.icon size={18} className="text-secondary mx-auto mb-2" />
+                  <div className="text-xl font-bold text-primary-foreground font-sans">{stat.value}</div>
+                  <div className="text-[10px] text-primary-foreground/35 mt-0.5">{stat.label}</div>
+                </div>
+              ))}
             </div>
           </motion.div>
         </div>
