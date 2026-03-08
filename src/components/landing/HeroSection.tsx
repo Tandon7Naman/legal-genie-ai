@@ -110,7 +110,7 @@ export const HeroSection = () => {
                   {[
                     { label: "Active Cases", value: "24", icon: Scale, change: "+3" },
                     { label: "AI Queries", value: "1,247", icon: Brain, change: "+89" },
-                    { label: "Win Rate", value: "89%", icon: Shield, change: "+2%" },
+                    { label: "Documents", value: "156", icon: FileText, change: "+12" },
                   ].map((stat) => (
                     <div key={stat.label} className="bg-primary/60 rounded-xl p-4 border border-secondary/8 hover:border-secondary/20 transition-colors">
                       <div className="flex items-center justify-between mb-2">
