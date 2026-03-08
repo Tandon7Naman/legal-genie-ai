@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/command";
 import {
   Briefcase, Users, Search, FileText, LayoutDashboard, Settings,
-  Scale, History,
+  Scale, History, GraduationCap,
 } from "lucide-react";
 
 interface SearchResult {
