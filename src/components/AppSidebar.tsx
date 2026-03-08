@@ -28,6 +28,7 @@ const mainItems = [
   { title: "Cases", url: "/cases", icon: Briefcase },
   { title: "Clients", url: "/clients", icon: Users },
   { title: "eCourts", url: "/ecourts", icon: Scale },
+  { title: "Student Hub", url: "/student-tools", icon: GraduationCap },
 ];
 
 export function AppSidebar() {
