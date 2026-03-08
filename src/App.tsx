@@ -13,6 +13,7 @@ import Dashboard from "./pages/Dashboard";
 import Research from "./pages/Research";
 import Drafting from "./pages/Drafting";
 import ECourts from "./pages/ECourts";
+import StudentTools from "./pages/StudentTools";
 import Admin from "./pages/Admin";
 import Cases from "./pages/Cases";
 import CaseDetail from "./pages/CaseDetail";
