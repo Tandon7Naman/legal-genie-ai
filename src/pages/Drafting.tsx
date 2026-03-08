@@ -79,6 +79,16 @@ const DraftingPage = () => {
   const [loading, setLoading] = useState(false);
   const [copied, setCopied] = useState(false);
   const [showToc, setShowToc] = useState(true);
+  const [showCollab, setShowCollab] = useState(false);
+  const [searchParams] = useSearchParams();
+  const collabId = searchParams.get("collab");
+
+  // Auto-open collab if link has collab param
+  useState(() => {
+    if (collabId) setShowCollab(true);
+  });
+
+  const collabDocId = collabId || `draft-${user?.id || "anon"}-${Date.now()}`;
 
   const headings = useMemo(() => extractHeadings(result), [result]);
   const stats = useMemo(() => computeStats(result), [result]);
