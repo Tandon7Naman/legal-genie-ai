@@ -1,6 +1,6 @@
 import {
   LayoutDashboard, Search, FileText, Briefcase, Users,
-  Shield, Settings, LogOut, Sun, Moon, Scale,
+  Shield, Settings, LogOut, Sun, Moon, Scale, GraduationCap,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation, useNavigate } from "react-router-dom";
