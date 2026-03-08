@@ -14,9 +14,8 @@ const footerLinks: Record<string, { label: string; action?: () => void; to?: str
   ],
   Company: [
     { label: "About", action: () => scrollToSection("#about") },
-    { label: "Team", action: () => scrollToSection("#about") },
-    { label: "Careers", action: () => scrollToSection("#contact") },
-    { label: "Blog", action: () => scrollToSection("#contact") },
+    { label: "Our Team", action: () => scrollToSection("#about") },
+    { label: "Contact Us", action: () => scrollToSection("#contact") },
   ],
   Legal: [
     { label: "Privacy Policy", to: "/privacy" },
@@ -70,9 +69,8 @@ export const Footer = () => {
           </p>
           <div className="flex items-center gap-6">
             {[
-              { label: "Twitter", url: "https://twitter.com" },
-              { label: "LinkedIn", url: "https://linkedin.com" },
-              { label: "GitHub", url: "https://github.com" },
+              { label: "LinkedIn", url: "https://linkedin.com/company/tandon-associates" },
+              { label: "Twitter", url: "https://twitter.com/tandonassoc" },
             ].map((social) => (
               <a
                 key={social.label}

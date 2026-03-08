@@ -1,6 +1,6 @@
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Scale, Shield, Brain, TrendingUp, Users, FileText } from "lucide-react";
+import { ArrowRight, Scale, Shield, Brain, TrendingUp, Users, FileText, MapPin } from "lucide-react";
 
 const FloatingOrb = ({ className, delay = 0 }: { className: string; delay?: number }) => (
   <motion.div
@@ -43,23 +43,23 @@ export const HeroSection = () => {
             </motion.div>
 
             <h1 className="text-5xl md:text-6xl lg:text-7xl font-serif font-bold text-primary-foreground leading-[1.1] mb-8">
-              Say Hi to{" "}
+              AI-Powered Legal{" "}
               <br />
-              <span className="text-gradient-gold">Tandon</span>{" "}
-              <span className="text-gradient-gold">Associates</span>
+              <span className="text-gradient-gold">Research</span> &{" "}
+              <span className="text-gradient-gold">Practice</span>
             </h1>
 
             <p className="text-lg md:text-xl text-primary-foreground/50 max-w-lg mb-10 font-sans leading-relaxed">
-              Your trusted legal partner. AI-powered research, case management, and document drafting — built for modern Indian legal professionals.
+              India's intelligent legal platform. AI-powered research, case management, and document drafting — built for lawyers, firms, and law students.
             </p>
 
             <div className="flex flex-wrap gap-4 mb-12">
               <Button size="lg" className="bg-secondary text-secondary-foreground hover:bg-gold-dark font-semibold text-base px-8 h-13 glow-gold group" onClick={() => window.location.href = '/auth'}>
-                Get Started
+                Start Free Trial
                 <ArrowRight className="ml-2 group-hover:translate-x-1 transition-transform" size={18} />
               </Button>
-              <Button size="lg" variant="outline" className="border-primary-foreground/20 text-primary-foreground hover:bg-primary-foreground/5 font-semibold text-base px-8 h-13" onClick={() => document.querySelector('#contact')?.scrollIntoView({ behavior: 'smooth' })}>
-                Contact Us
+              <Button size="lg" variant="outline" className="border-primary-foreground/20 text-primary-foreground hover:bg-primary-foreground/5 font-semibold text-base px-8 h-13" onClick={() => document.querySelector('#features')?.scrollIntoView({ behavior: 'smooth' })}>
+                See How It Works
               </Button>
             </div>
 
@@ -79,10 +79,10 @@ export const HeroSection = () => {
                 <Shield size={16} className="text-secondary/60" />
                 <span className="text-sm font-sans">Bank-grade Security</span>
               </div>
-              <div className="w-px h-4 bg-primary-foreground/10 hidden sm:block" />
-              <div className="hidden sm:flex items-center gap-2">
+              <div className="w-px h-4 bg-primary-foreground/10" />
+              <div className="flex items-center gap-2">
                 <TrendingUp size={16} className="text-secondary/60" />
-                <span className="text-sm font-sans">89% Win Rate</span>
+                <span className="text-sm font-sans">Data Hosted in India</span>
               </div>
             </motion.div>
           </motion.div>
@@ -110,7 +110,7 @@ export const HeroSection = () => {
                   {[
                     { label: "Active Cases", value: "24", icon: Scale, change: "+3" },
                     { label: "AI Queries", value: "1,247", icon: Brain, change: "+89" },
-                    { label: "Win Rate", value: "89%", icon: Shield, change: "+2%" },
+                    { label: "Documents", value: "156", icon: FileText, change: "+12" },
                   ].map((stat) => (
                     <div key={stat.label} className="bg-primary/60 rounded-xl p-4 border border-secondary/8 hover:border-secondary/20 transition-colors">
                       <div className="flex items-center justify-between mb-2">
