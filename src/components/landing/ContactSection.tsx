@@ -59,7 +59,7 @@ export const ContactSection = () => {
                 const email = formData.get('email');
                 if (!name || !email) return;
                 e.currentTarget.reset();
-                alert('Thank you for your message! We will get back to you shortly.');
+                toast({ title: "Message Sent!", description: "Thank you for reaching out. We'll get back to you within 24 hours." });
               }}>
                 <div className="grid sm:grid-cols-2 gap-4">
                   <Input name="name" placeholder="Full Name" required className="bg-primary/50 border-secondary/10 text-primary-foreground placeholder:text-primary-foreground/25 h-11 focus:border-secondary/30" />

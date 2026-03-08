@@ -69,9 +69,8 @@ export const Footer = () => {
           </p>
           <div className="flex items-center gap-6">
             {[
-              { label: "Twitter", url: "https://twitter.com" },
-              { label: "LinkedIn", url: "https://linkedin.com" },
-              { label: "GitHub", url: "https://github.com" },
+              { label: "LinkedIn", url: "https://linkedin.com/company/tandon-associates" },
+              { label: "Twitter", url: "https://twitter.com/tandonassoc" },
             ].map((social) => (
               <a
                 key={social.label}

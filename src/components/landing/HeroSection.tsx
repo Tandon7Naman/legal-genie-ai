@@ -1,6 +1,6 @@
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { ArrowRight, Scale, Shield, Brain, TrendingUp, Users, FileText } from "lucide-react";
+import { ArrowRight, Scale, Shield, Brain, TrendingUp, Users, FileText, MapPin } from "lucide-react";
 
 const FloatingOrb = ({ className, delay = 0 }: { className: string; delay?: number }) => (
   <motion.div
