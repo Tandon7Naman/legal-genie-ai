@@ -12,6 +12,7 @@ import { motion } from "framer-motion";
 import { Search, Loader2, History, Sparkles, FileSearch, Filter, Copy, Check, Trash2 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { SmartSuggestions } from "@/components/research/SmartSuggestions";
+import { SourceQualityPanel } from "@/components/research/SourceQualityPanel";
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 
