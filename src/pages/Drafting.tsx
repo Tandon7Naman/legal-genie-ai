@@ -8,8 +8,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { motion } from "framer-motion";
-import { FileText, Loader2, Sparkles, Copy, Check, List, BarChart3, BookOpen } from "lucide-react";
+import { FileText, Loader2, Sparkles, Copy, Check, List, BarChart3, BookOpen, Users } from "lucide-react";
 import ReactMarkdown from "react-markdown";
+import { CollaborativeEditor } from "@/components/collaboration/CollaborativeEditor";
+import { useSearchParams } from "react-router-dom";
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 
