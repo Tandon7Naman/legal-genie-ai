@@ -219,11 +219,24 @@ const DraftingPage = () => {
           </div>
         </div>
 
-        <Button onClick={handleDraft} disabled={loading || !documentType} className="bg-secondary text-secondary-foreground hover:bg-accent">
-          {loading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Sparkles className="w-4 h-4 mr-2" />}
-          Generate Draft
-        </Button>
+        <div className="flex items-center gap-3">
+          <Button onClick={handleDraft} disabled={loading || !documentType} className="bg-secondary text-secondary-foreground hover:bg-accent">
+            {loading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Sparkles className="w-4 h-4 mr-2" />}
+            Generate Draft
+          </Button>
+          <Button variant="outline" onClick={() => setShowCollab(!showCollab)} className="border-border/30 text-muted-foreground hover:text-secondary">
+            <Users className="w-4 h-4 mr-2" />
+            {showCollab ? "Hide" : "Collaborate"}
+          </Button>
+        </div>
       </motion.div>
+
+      {/* Collaborative Editor */}
+      {showCollab && (
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="mt-6">
+          <CollaborativeEditor documentId={collabDocId} initialContent={result} />
+        </motion.div>
+      )}
 
       {(result || loading) && (
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="mt-8">
