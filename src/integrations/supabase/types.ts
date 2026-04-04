@@ -14,6 +14,107 @@ export type Database = {
   }
   public: {
     Tables: {
+      billable_hours: {
+        Row: {
+          case_id: string | null
+          client_id: string | null
+          created_at: string
+          date: string
+          description: string | null
+          hours: number
+          id: string
+          rate: number
+          user_id: string
+        }
+        Insert: {
+          case_id?: string | null
+          client_id?: string | null
+          created_at?: string
+          date?: string
+          description?: string | null
+          hours?: number
+          id?: string
+          rate?: number
+          user_id: string
+        }
+        Update: {
+          case_id?: string | null
+          client_id?: string | null
+          created_at?: string
+          date?: string
+          description?: string | null
+          hours?: number
+          id?: string
+          rate?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "billable_hours_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "cases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "billable_hours_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      calendar_events: {
+        Row: {
+          case_id: string | null
+          created_at: string
+          date: string
+          description: string | null
+          end_date: string | null
+          id: string
+          location: string | null
+          title: string
+          type: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          case_id?: string | null
+          created_at?: string
+          date: string
+          description?: string | null
+          end_date?: string | null
+          id?: string
+          location?: string | null
+          title: string
+          type?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          case_id?: string | null
+          created_at?: string
+          date?: string
+          description?: string | null
+          end_date?: string | null
+          id?: string
+          location?: string | null
+          title?: string
+          type?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "calendar_events_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "cases"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       case_notes: {
         Row: {
           case_id: string
@@ -176,6 +277,33 @@ export type Database = {
           },
         ]
       }
+      conflict_checks: {
+        Row: {
+          created_at: string
+          id: string
+          query_text: string
+          results: Json | null
+          status: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          query_text: string
+          results?: Json | null
+          status?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          query_text?: string
+          results?: Json | null
+          status?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       contact_submissions: {
         Row: {
           case_type: string | null
@@ -205,6 +333,92 @@ export type Database = {
           phone?: string | null
         }
         Relationships: []
+      }
+      contracts: {
+        Row: {
+          created_at: string
+          description: string | null
+          expiry: string | null
+          id: string
+          party: string
+          status: string
+          title: string
+          updated_at: string
+          user_id: string
+          value: string | null
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          expiry?: string | null
+          id?: string
+          party: string
+          status?: string
+          title: string
+          updated_at?: string
+          user_id: string
+          value?: string | null
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          expiry?: string | null
+          id?: string
+          party?: string
+          status?: string
+          title?: string
+          updated_at?: string
+          user_id?: string
+          value?: string | null
+        }
+        Relationships: []
+      }
+      documents: {
+        Row: {
+          case_id: string | null
+          created_at: string
+          file_path: string | null
+          file_size: number | null
+          file_type: string | null
+          id: string
+          title: string
+          updated_at: string
+          user_id: string
+          version: number
+        }
+        Insert: {
+          case_id?: string | null
+          created_at?: string
+          file_path?: string | null
+          file_size?: number | null
+          file_type?: string | null
+          id?: string
+          title: string
+          updated_at?: string
+          user_id: string
+          version?: number
+        }
+        Update: {
+          case_id?: string | null
+          created_at?: string
+          file_path?: string | null
+          file_size?: number | null
+          file_type?: string | null
+          id?: string
+          title?: string
+          updated_at?: string
+          user_id?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "documents_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "cases"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       hearings: {
         Row: {
@@ -249,6 +463,66 @@ export type Database = {
             columns: ["case_id"]
             isOneToOne: false
             referencedRelation: "cases"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      invoices: {
+        Row: {
+          amount: number
+          case_id: string | null
+          client_id: string | null
+          created_at: string
+          description: string | null
+          due_date: string | null
+          id: string
+          invoice_number: string | null
+          paid_date: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amount?: number
+          case_id?: string | null
+          client_id?: string | null
+          created_at?: string
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          invoice_number?: string | null
+          paid_date?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          case_id?: string | null
+          client_id?: string | null
+          created_at?: string
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          invoice_number?: string | null
+          paid_date?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoices_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "cases"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoices_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
             referencedColumns: ["id"]
           },
         ]
