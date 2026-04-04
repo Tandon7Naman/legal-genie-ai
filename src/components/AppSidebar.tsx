@@ -28,7 +28,14 @@ const mainItems = [
   { title: "Drafting", url: "/drafting", icon: FileText },
   { title: "Cases", url: "/cases", icon: Briefcase },
   { title: "Clients", url: "/clients", icon: Users },
+  { title: "Calendar", url: "/calendar", icon: Calendar },
+  { title: "Documents", url: "/documents", icon: File },
+  { title: "Contracts", url: "/contracts", icon: FileText },
+  { title: "Finance", url: "/finance", icon: Receipt },
+  { title: "Conflict Check", url: "/conflict-checker", icon: ShieldCheck },
+  { title: "Analytics", url: "/analytics", icon: BarChart3 },
   { title: "eCourts", url: "/ecourts", icon: Scale },
+  { title: "Team", url: "/team", icon: UsersRound },
   { title: "Student Hub", url: "/student-tools", icon: GraduationCap },
 ];
 
