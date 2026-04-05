@@ -572,6 +572,56 @@ export type Database = {
         }
         Relationships: []
       }
+      saved_drafts: {
+        Row: {
+          content: string
+          created_at: string
+          document_type: string
+          id: string
+          parameters: Json | null
+          parent_id: string | null
+          status: string
+          title: string
+          updated_at: string
+          user_id: string
+          version: number
+        }
+        Insert: {
+          content?: string
+          created_at?: string
+          document_type: string
+          id?: string
+          parameters?: Json | null
+          parent_id?: string | null
+          status?: string
+          title: string
+          updated_at?: string
+          user_id: string
+          version?: number
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          document_type?: string
+          id?: string
+          parameters?: Json | null
+          parent_id?: string | null
+          status?: string
+          title?: string
+          updated_at?: string
+          user_id?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "saved_drafts_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "saved_drafts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       search_history: {
         Row: {
           created_at: string
