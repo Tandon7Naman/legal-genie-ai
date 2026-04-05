@@ -17,3 +17,6 @@ verify_jwt = false
 
 [functions.student-tools]
 verify_jwt = false
+
+[functions.brief-analyze]
+verify_jwt = false
