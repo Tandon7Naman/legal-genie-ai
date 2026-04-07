@@ -11,7 +11,7 @@ import {
   Scale, Search, Loader2, AlertCircle, Gavel, RefreshCw,
   FileText, Users, Calendar, MapPin, Clock, ChevronRight,
 } from "lucide-react";
-import { BackButton } from "@/components/BackButton";
+
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 
