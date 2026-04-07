@@ -6,123 +6,124 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+const ECOURTS_BASE = "https://webapi.ecourtsindia.com/api/partner";
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { cnrNumber } = await req.json();
-    if (!cnrNumber) throw new Error("CNR number is required");
+    const ECOURTS_API_KEY = Deno.env.get("ECOURTS_API_KEY");
+    if (!ECOURTS_API_KEY) throw new Error("ECOURTS_API_KEY is not configured");
 
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
+    const { action, cnrNumber, searchParams } = await req.json();
+    const headers = {
+      Authorization: `Bearer ${ECOURTS_API_KEY}`,
+      "Content-Type": "application/json",
+    };
 
-    // Try to scrape eCourts if Firecrawl is available
-    let scrapedData = "";
-    const FIRECRAWL_API_KEY = Deno.env.get("FIRECRAWL_API_KEY");
-    
-    if (FIRECRAWL_API_KEY) {
-      try {
-        // Search for the CNR on eCourts-related sites
-        const searchResp = await fetch("https://api.firecrawl.dev/v1/search", {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${FIRECRAWL_API_KEY}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            query: `eCourts India CNR ${cnrNumber} case status`,
-            limit: 5,
-            scrapeOptions: { formats: ["markdown"] },
-          }),
-        });
+    let result: any;
 
-        if (searchResp.ok) {
-          const searchData = await searchResp.json();
-          if (searchData.data && searchData.data.length > 0) {
-            scrapedData = searchData.data
-              .slice(0, 3)
-              .map((r: any) => `Source: ${r.url}\n${r.markdown || r.description || ""}`)
-              .join("\n\n---\n\n");
+    switch (action) {
+      case "case-detail": {
+        if (!cnrNumber) throw new Error("CNR number is required");
+        const resp = await fetch(`${ECOURTS_BASE}/case/${cnrNumber}`, { headers });
+        if (!resp.ok) {
+          const err = await resp.json().catch(() => ({}));
+          throw new Error(err.error?.message || `eCourts API error ${resp.status}`);
+        }
+        result = await resp.json();
+        break;
+      }
+
+      case "search": {
+        const params = new URLSearchParams();
+        if (searchParams) {
+          for (const [k, v] of Object.entries(searchParams)) {
+            if (v !== undefined && v !== null && v !== "") {
+              if (Array.isArray(v)) {
+                (v as string[]).forEach((val) => params.append(k, val));
+              } else {
+                params.set(k, String(v));
+              }
+            }
           }
         }
-      } catch (e) {
-        console.log("Firecrawl search failed, falling back to AI-only:", e);
+        const resp = await fetch(`${ECOURTS_BASE}/search?${params}`, { headers });
+        if (!resp.ok) {
+          const err = await resp.json().catch(() => ({}));
+          throw new Error(err.error?.message || `Search error ${resp.status}`);
+        }
+        result = await resp.json();
+        break;
       }
+
+      case "refresh": {
+        if (!cnrNumber) throw new Error("CNR number is required");
+        const resp = await fetch(`${ECOURTS_BASE}/case/${cnrNumber}/refresh`, {
+          method: "POST",
+          headers,
+        });
+        if (!resp.ok) {
+          const err = await resp.json().catch(() => ({}));
+          throw new Error(err.error?.message || `Refresh error ${resp.status}`);
+        }
+        result = await resp.json();
+        break;
+      }
+
+      case "order-ai": {
+        if (!cnrNumber || !searchParams?.filename) throw new Error("CNR and filename required");
+        const resp = await fetch(
+          `${ECOURTS_BASE}/case/${cnrNumber}/order-ai/${searchParams.filename}`,
+          { headers }
+        );
+        if (!resp.ok) {
+          const err = await resp.json().catch(() => ({}));
+          throw new Error(err.error?.message || `Order AI error ${resp.status}`);
+        }
+        result = await resp.json();
+        break;
+      }
+
+      case "causelist-search": {
+        const params = new URLSearchParams();
+        if (searchParams) {
+          for (const [k, v] of Object.entries(searchParams)) {
+            if (v !== undefined && v !== null && v !== "") params.set(k, String(v));
+          }
+        }
+        const resp = await fetch(`${ECOURTS_BASE}/causelist/search?${params}`, { headers });
+        if (!resp.ok) {
+          const err = await resp.json().catch(() => ({}));
+          throw new Error(err.error?.message || `Cause list error ${resp.status}`);
+        }
+        result = await resp.json();
+        break;
+      }
+
+      case "court-structure": {
+        const path = searchParams?.path || "states";
+        const resp = await fetch(`${ECOURTS_BASE}/causelist/court-structure/${path}`, { headers });
+        if (!resp.ok) {
+          const err = await resp.json().catch(() => ({}));
+          throw new Error(err.error?.message || `Court structure error ${resp.status}`);
+        }
+        result = await resp.json();
+        break;
+      }
+
+      default:
+        throw new Error(`Unknown action: ${action}`);
     }
 
-    const systemPrompt = `You are an Indian eCourts case status expert. The user is querying a CNR (Case Number Record) number.
-
-Your task:
-1. Parse the CNR number to identify the court (state code, district code) and case details
-2. Provide a structured case status report
-
-Format your response with these sections:
-## 📋 CNR Details
-- **CNR Number**: [the number]
-- **Court**: [identified court from code]
-- **State/District**: [decoded from CNR prefix]
-
-## 📊 Case Status
-Provide likely status information. If real scraped data is available, use it. Otherwise, explain what each part of the CNR means and guide the user to check ecourts.gov.in manually.
-
-## 🔗 How to Check
-Provide step-by-step instructions to check on ecourts.gov.in:
-1. Visit https://ecourts.gov.in/ecourts_home/
-2. Click "Case Status"
-3. Select "CNR Number" search
-4. Enter the CNR number
-
-## ⚠️ Disclaimer
-Note that this is an AI-assisted lookup. For authoritative case status, always verify on the official eCourts portal.
-
-CNR Code Reference:
-- DL = Delhi, MH = Maharashtra, TN = Tamil Nadu, WB = West Bengal, KA = Karnataka, UP = Uttar Pradesh, RJ = Rajasthan, GJ = Gujarat
-- HC = High Court, 01-99 = District codes
-- SC = Supreme Court
-
-${scrapedData ? `\n\nScraped data from web sources:\n${scrapedData}` : "No live data available. Provide analysis based on the CNR format only."}`;
-
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: `Track case status for CNR: ${cnrNumber}` },
-        ],
-        stream: true,
-      }),
-    });
-
-    if (!response.ok) {
-      if (response.status === 429) {
-        return new Response(JSON.stringify({ error: "Rate limit exceeded." }), {
-          status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-      if (response.status === 402) {
-        return new Response(JSON.stringify({ error: "AI credits exhausted." }), {
-          status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
-        });
-      }
-      const t = await response.text();
-      console.error("AI error:", response.status, t);
-      return new Response(JSON.stringify({ error: "AI service error" }), {
-        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    return new Response(response.body, {
-      headers: { ...corsHeaders, "Content-Type": "text/event-stream" },
+    return new Response(JSON.stringify(result), {
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {
     console.error("ecourts-track error:", e);
-    return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }), {
-      status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+    return new Response(
+      JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }),
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
   }
 });
