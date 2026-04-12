@@ -21,6 +21,11 @@ const footerLinks: Record<string, { label: string; action?: () => void; to?: str
     { label: "Privacy Policy", to: "/privacy" },
     { label: "Terms of Service", to: "/terms" },
     { label: "Disclaimer", to: "/disclaimer" },
+    { label: "Accessibility", to: "/accessibility" },
+  ],
+  Resources: [
+    { label: "FAQ", to: "/faq" },
+    { label: "Knowledge Base", to: "/auth" },
   ],
 };
 
