@@ -2,6 +2,7 @@ import {
   LayoutDashboard, Search, FileText, Briefcase, Users,
   Shield, Settings, LogOut, Sun, Moon, Scale, GraduationCap,
   Calendar, Receipt, ShieldCheck, BarChart3, File, UsersRound,
+  BookOpen, Activity, Building2,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -36,6 +37,9 @@ const mainItems = [
   { title: "Analytics", url: "/analytics", icon: BarChart3 },
   { title: "eCourts", url: "/ecourts", icon: Scale },
   { title: "Team", url: "/team", icon: UsersRound },
+  { title: "Knowledge Base", url: "/knowledge-base", icon: BookOpen },
+  { title: "Compliance", url: "/compliance", icon: Building2 },
+  { title: "Audit Log", url: "/audit-log", icon: Activity },
   { title: "Student Hub", url: "/student-tools", icon: GraduationCap },
 ];
 

@@ -30,6 +30,11 @@ import Analytics from "./pages/Analytics";
 import ConflictChecker from "./pages/ConflictChecker";
 import Documents from "./pages/Documents";
 import Team from "./pages/Team";
+import FAQ from "./pages/FAQ";
+import Accessibility from "./pages/Accessibility";
+import KnowledgeBase from "./pages/KnowledgeBase";
+import AuditLog from "./pages/AuditLog";
+import CompliancePage from "./pages/Compliance";
 
 const queryClient = new QueryClient();
 
@@ -47,6 +52,8 @@ const App = () => (
             <Route path="/privacy" element={<Privacy />} />
             <Route path="/terms" element={<Terms />} />
             <Route path="/disclaimer" element={<Disclaimer />} />
+            <Route path="/faq" element={<FAQ />} />
+            <Route path="/accessibility" element={<Accessibility />} />
             <Route path="/dashboard" element={<ProtectedRoute><AppLayout><Dashboard /></AppLayout></ProtectedRoute>} />
             <Route path="/research" element={<ProtectedRoute><AppLayout><Research /></AppLayout></ProtectedRoute>} />
             <Route path="/drafting" element={<ProtectedRoute><AppLayout><Drafting /></AppLayout></ProtectedRoute>} />
@@ -64,6 +71,9 @@ const App = () => (
             <Route path="/conflict-checker" element={<ProtectedRoute><AppLayout><ConflictChecker /></AppLayout></ProtectedRoute>} />
             <Route path="/documents" element={<ProtectedRoute><AppLayout><Documents /></AppLayout></ProtectedRoute>} />
             <Route path="/team" element={<ProtectedRoute><AppLayout><Team /></AppLayout></ProtectedRoute>} />
+            <Route path="/knowledge-base" element={<ProtectedRoute><AppLayout><KnowledgeBase /></AppLayout></ProtectedRoute>} />
+            <Route path="/audit-log" element={<ProtectedRoute><AppLayout><AuditLog /></AppLayout></ProtectedRoute>} />
+            <Route path="/compliance" element={<ProtectedRoute><AppLayout><CompliancePage /></AppLayout></ProtectedRoute>} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AuthProvider>
