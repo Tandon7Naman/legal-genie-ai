@@ -72,7 +72,7 @@ export const SmartSuggestions = ({ onSuggestionClick }: SmartSuggestionsProps) =
           <button
             key={i}
             onClick={() => onSuggestionClick(s)}
-            className="text-xs px-3 py-1.5 rounded-full bg-primary/20 border border-border/20 text-primary-foreground/70 hover:border-secondary/40 hover:text-secondary transition-colors flex items-center gap-1.5"
+            className="text-xs px-3 py-1.5 rounded-full bg-secondary/15 border border-secondary/30 text-foreground hover:bg-secondary/25 hover:border-secondary/50 transition-colors flex items-center gap-1.5"
           >
             <Sparkles className="w-3 h-3" />
             {s}
