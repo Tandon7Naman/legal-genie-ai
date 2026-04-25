@@ -10,6 +10,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   Scale, Search, Loader2, AlertCircle, Gavel, RefreshCw,
   FileText, Users, Calendar, MapPin, Clock, ChevronRight,
+  ExternalLink, Sparkles, Briefcase,
 } from "lucide-react";
 
 
@@ -23,6 +24,11 @@ const ECourtsPage = () => {
   const [searchResults, setSearchResults] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState("cnr");
+  const [activeDetailTab, setActiveDetailTab] = useState<
+    "orders" | "hearings" | "judgments" | "ias" | null
+  >(null);
+  const [orderAi, setOrderAi] = useState<Record<string, any>>({});
+  const [orderAiLoading, setOrderAiLoading] = useState<string | null>(null);
 
   // Search fields
   const [searchQuery, setSearchQuery] = useState("");
@@ -53,6 +59,8 @@ const ECourtsPage = () => {
     }
     setLoading(true);
     setCaseData(null);
+    setActiveDetailTab(null);
+    setOrderAi({});
     try {
       const result = await callApi({ action: "case-detail", cnrNumber: trimmed });
       setCaseData(result.data);
@@ -99,6 +107,34 @@ const ECourtsPage = () => {
   };
 
   const cd = caseData?.courtCaseData;
+
+  const toggleDetailTab = (
+    tab: "orders" | "hearings" | "judgments" | "ias",
+  ) => setActiveDetailTab((prev) => (prev === tab ? null : tab));
+
+  const handleOrderAi = async (filename: string) => {
+    if (!cd?.cnr || !filename || orderAi[filename]) return;
+    setOrderAiLoading(filename);
+    try {
+      const res = await callApi({
+        action: "order-ai",
+        cnrNumber: cd.cnr,
+        searchParams: { filename },
+      });
+      setOrderAi((prev) => ({ ...prev, [filename]: res.data || res }));
+    } catch (err: any) {
+      toast({ title: "AI Summary Failed", description: err.message, variant: "destructive" });
+    } finally {
+      setOrderAiLoading(null);
+    }
+  };
+
+  const chipClass = (active: boolean) =>
+    `px-3 py-1 rounded-full text-xs font-medium border transition-colors flex items-center gap-1.5 ${
+      active
+        ? "bg-secondary text-secondary-foreground border-secondary"
+        : "bg-background/50 text-foreground border-border/30 hover:border-secondary/40 hover:text-foreground"
+    }`;
 
   return (
     <div className="p-6 max-w-5xl mx-auto">
@@ -254,13 +290,235 @@ const ECourtsPage = () => {
                 </div>
               </div>
 
-              {/* Stats */}
-              <div className="mt-4 flex flex-wrap gap-3">
-                {cd.orderCount > 0 && <Badge variant="outline">{cd.orderCount} Orders</Badge>}
-                {cd.hearingCount > 0 && <Badge variant="outline">{cd.hearingCount} Hearings</Badge>}
-                {cd.iaCount > 0 && <Badge variant="outline">{cd.iaCount} IAs</Badge>}
-                {cd.judgmentCount > 0 && <Badge variant="outline">{cd.judgmentCount} Judgments</Badge>}
+              {/* Interactive Stat Chips */}
+              <div className="mt-4 flex flex-wrap gap-2">
+                {cd.orderCount > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => toggleDetailTab("orders")}
+                    className={chipClass(activeDetailTab === "orders")}
+                  >
+                    <FileText className="w-3 h-3" /> {cd.orderCount} Orders
+                  </button>
+                )}
+                {cd.hearingCount > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => toggleDetailTab("hearings")}
+                    className={chipClass(activeDetailTab === "hearings")}
+                  >
+                    <Clock className="w-3 h-3" /> {cd.hearingCount} Hearings
+                  </button>
+                )}
+                {cd.iaCount > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => toggleDetailTab("ias")}
+                    className={chipClass(activeDetailTab === "ias")}
+                  >
+                    <Briefcase className="w-3 h-3" /> {cd.iaCount} IAs
+                  </button>
+                )}
+                {cd.judgmentCount > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => toggleDetailTab("judgments")}
+                    className={chipClass(activeDetailTab === "judgments")}
+                  >
+                    <Gavel className="w-3 h-3" /> {cd.judgmentCount} Judgments
+                  </button>
+                )}
               </div>
+
+              {/* Drill-down Panel */}
+              <AnimatePresence initial={false}>
+                {activeDetailTab && (
+                  <motion.div
+                    key={activeDetailTab}
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: "auto" }}
+                    exit={{ opacity: 0, height: 0 }}
+                    transition={{ duration: 0.2 }}
+                    className="mt-4 overflow-hidden"
+                  >
+                    <div className="pt-4 border-t border-border/20 space-y-2">
+                      {activeDetailTab === "orders" && (
+                        <>
+                          {cd.orders?.length ? (
+                            cd.orders.map((o: any, i: number) => (
+                              <div
+                                key={i}
+                                className="p-3 rounded-lg bg-background/50 border border-border/10"
+                              >
+                                <div className="flex items-start justify-between gap-3">
+                                  <div className="flex-1 min-w-0">
+                                    <p className="text-sm font-medium">
+                                      {o.title || o.orderName || `Order dated ${o.date || o.orderDate || "—"}`}
+                                    </p>
+                                    <p className="text-xs text-muted-foreground mt-1">
+                                      {o.date || o.orderDate || "Date N/A"}
+                                      {o.judge ? ` · ${o.judge}` : ""}
+                                    </p>
+                                  </div>
+                                  <div className="flex flex-col gap-1.5 shrink-0">
+                                    {(o.url || o.fileUrl) && (
+                                      <a
+                                        href={o.url || o.fileUrl}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="text-xs flex items-center gap-1 text-secondary hover:underline"
+                                      >
+                                        <ExternalLink className="w-3 h-3" /> View PDF
+                                      </a>
+                                    )}
+                                    {o.filename && (
+                                      <Button
+                                        size="sm"
+                                        variant="ghost"
+                                        className="h-7 text-xs px-2"
+                                        onClick={() => handleOrderAi(o.filename)}
+                                        disabled={orderAiLoading === o.filename}
+                                      >
+                                        {orderAiLoading === o.filename ? (
+                                          <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+                                        ) : (
+                                          <Sparkles className="w-3 h-3 mr-1" />
+                                        )}
+                                        AI Summary
+                                      </Button>
+                                    )}
+                                  </div>
+                                </div>
+                                {o.filename && orderAi[o.filename] && (
+                                  <div className="mt-2 p-2 rounded bg-muted/30 text-xs text-muted-foreground">
+                                    {orderAi[o.filename].summary ||
+                                      orderAi[o.filename].orderSummary ||
+                                      JSON.stringify(orderAi[o.filename]).slice(0, 400)}
+                                  </div>
+                                )}
+                              </div>
+                            ))
+                          ) : (
+                            <p className="text-sm text-muted-foreground py-4 text-center">
+                              No order records available.
+                            </p>
+                          )}
+                        </>
+                      )}
+
+                      {activeDetailTab === "hearings" && (
+                        <>
+                          {cd.hearings?.length ? (
+                            cd.hearings.map((h: any, i: number) => (
+                              <div
+                                key={i}
+                                className="p-3 rounded-lg bg-background/50 border border-border/10"
+                              >
+                                <div className="flex items-center justify-between">
+                                  <p className="text-sm font-medium">
+                                    {h.date || h.hearingDate || h.businessDate || "Date N/A"}
+                                  </p>
+                                  {h.purpose && (
+                                    <Badge variant="outline" className="text-xs">{h.purpose}</Badge>
+                                  )}
+                                </div>
+                                {h.judge && (
+                                  <p className="text-xs text-muted-foreground mt-1">
+                                    Judge: {h.judge}
+                                  </p>
+                                )}
+                                {(h.business || h.outcome || h.notes) && (
+                                  <p className="text-xs text-muted-foreground mt-1">
+                                    {h.business || h.outcome || h.notes}
+                                  </p>
+                                )}
+                              </div>
+                            ))
+                          ) : (
+                            <p className="text-sm text-muted-foreground py-4 text-center">
+                              No hearing records available.
+                            </p>
+                          )}
+                        </>
+                      )}
+
+                      {activeDetailTab === "judgments" && (
+                        <>
+                          {cd.judgments?.length ? (
+                            cd.judgments.map((j: any, i: number) => (
+                              <div
+                                key={i}
+                                className="p-3 rounded-lg bg-background/50 border border-border/10"
+                              >
+                                <div className="flex items-start justify-between gap-3">
+                                  <div className="flex-1 min-w-0">
+                                    <p className="text-sm font-medium">
+                                      {j.title || `Judgment dated ${j.date || j.judgmentDate || "—"}`}
+                                    </p>
+                                    <p className="text-xs text-muted-foreground mt-1">
+                                      {j.date || j.judgmentDate || "Date N/A"}
+                                      {j.judge ? ` · ${j.judge}` : ""}
+                                    </p>
+                                  </div>
+                                  {(j.url || j.fileUrl) && (
+                                    <a
+                                      href={j.url || j.fileUrl}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="text-xs flex items-center gap-1 text-secondary hover:underline shrink-0"
+                                    >
+                                      <ExternalLink className="w-3 h-3" /> View PDF
+                                    </a>
+                                  )}
+                                </div>
+                              </div>
+                            ))
+                          ) : (
+                            <p className="text-sm text-muted-foreground py-4 text-center">
+                              No judgment records available.
+                            </p>
+                          )}
+                        </>
+                      )}
+
+                      {activeDetailTab === "ias" && (
+                        <>
+                          {cd.ias?.length ? (
+                            cd.ias.map((ia: any, i: number) => (
+                              <div
+                                key={i}
+                                className="p-3 rounded-lg bg-background/50 border border-border/10"
+                              >
+                                <div className="flex items-center justify-between">
+                                  <p className="text-sm font-medium">
+                                    {ia.iaNumber || ia.number || `IA #${i + 1}`}
+                                  </p>
+                                  {ia.status && (
+                                    <Badge variant="outline" className="text-xs">{ia.status}</Badge>
+                                  )}
+                                </div>
+                                <p className="text-xs text-muted-foreground mt-1">
+                                  Filed: {ia.filingDate || ia.date || "N/A"}
+                                  {ia.party ? ` · ${ia.party}` : ""}
+                                </p>
+                                {ia.purpose && (
+                                  <p className="text-xs text-muted-foreground mt-1">
+                                    {ia.purpose}
+                                  </p>
+                                )}
+                              </div>
+                            ))
+                          ) : (
+                            <p className="text-sm text-muted-foreground py-4 text-center">
+                              No interlocutory applications available.
+                            </p>
+                          )}
+                        </>
+                      )}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
 
             {/* AI Analysis */}
