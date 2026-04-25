@@ -85,6 +85,37 @@ serve(async (req) => {
         break;
       }
 
+      case "document-proxy": {
+        // Streams a PDF from the eCourts API back to the browser using the
+        // server-side API key. Used for relative PDF references like
+        // "order-1.pdf" returned in judgmentOrders[].orderUrl.
+        if (!cnrNumber || !searchParams?.filename) {
+          throw new Error("CNR and filename required");
+        }
+        const filename = String(searchParams.filename).replace(/^\/+/, "");
+        const docUrl = filename.startsWith("http")
+          ? filename
+          : `${ECOURTS_BASE}/case/${cnrNumber}/document/${filename}`;
+        const resp = await fetch(docUrl, { headers });
+        if (!resp.ok) {
+          const errText = await resp.text().catch(() => "");
+          return new Response(
+            JSON.stringify({ error: `Document fetch error ${resp.status}: ${errText.slice(0, 200)}` }),
+            { status: resp.status, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+          );
+        }
+        const contentType = resp.headers.get("content-type") || "application/pdf";
+        const buf = await resp.arrayBuffer();
+        return new Response(buf, {
+          headers: {
+            ...corsHeaders,
+            "Content-Type": contentType,
+            "Content-Disposition": `inline; filename="${filename.split("/").pop()}"`,
+            "Cache-Control": "private, max-age=300",
+          },
+        });
+      }
+
       case "causelist-search": {
         const params = new URLSearchParams();
         if (searchParams) {

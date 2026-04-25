@@ -1,56 +1,95 @@
-## The problem
+## Problem found
 
-On the eCourts page, after a successful CNR lookup the case detail card shows three pill-shaped badges — **"1 Orders", "2 Hearings", "1 Judgments"** (and sometimes "IAs"). They look clickable, but in the current code they are static decorative `<Badge variant="outline">` elements with **no `onClick` handler and no associated content panel**. That's why nothing happens when you click them.
+The CNR lookup response already includes the data, but the frontend is reading the wrong field names.
 
-Source of the issue (`src/pages/ECourts.tsx` lines 259–262):
+For the tested CNR, the API returned:
 
-```tsx
-{cd.orderCount > 0 && <Badge variant="outline">{cd.orderCount} Orders</Badge>}
-{cd.hearingCount > 0 && <Badge variant="outline">{cd.hearingCount} Hearings</Badge>}
-{cd.iaCount > 0 && <Badge variant="outline">{cd.iaCount} IAs</Badge>}
-{cd.judgmentCount > 0 && <Badge variant="outline">{cd.judgmentCount} Judgments</Badge>}
+```text
+historyOfCaseHearings: 2 records
+judgmentOrders: 1 PDF record with orderUrl: "order-1.pdf"
+orderCount: 1
+hearingCount: 2
+judgmentCount: 1
 ```
 
-The eCourts `/case/:cnr` API response already contains the full underlying lists (`orders`, `hearings`, `judgments`, `ias`) on the same `courtCaseData` object — we just aren't rendering them.
+But `src/pages/ECourts.tsx` currently renders only:
 
-## The fix
+```text
+cd.orders
+cd.hearings
+cd.judgments
+cd.ias
+```
 
-Convert the four count badges into a real **tabbed drill-down panel** below the case detail card, so clicking a badge reveals that list.
+Those arrays do not exist in the actual response, so the UI falls into:
 
-### What gets built
+```text
+No order records available.
+No hearing records available.
+No judgment records available.
+```
 
-1. **Interactive count chips**
-   - Replace each static `Badge` with a button-styled chip (still pill-shaped, matching current look).
-   - Clicking a chip sets an `activeDetailTab` state (`"orders" | "hearings" | "judgments" | "ias"`).
-   - The active chip gets a highlighted style (filled secondary color); inactive chips stay outline.
-   - Clicking the same chip again collapses the panel.
+There is also a PDF-link mismatch: the API returns `orderUrl`, while the UI only checks `url` or `fileUrl`.
 
-2. **Drill-down content panel** (renders directly under the case card when a chip is active)
-   - **Orders tab** — list each order with date, order/judge name, and a "View Order" link that opens the PDF (`order.url` from API). If `order.filename` exists, also expose an "AI Summary" button that calls the existing `order-ai` action in the edge function.
-   - **Hearings tab** — chronological list with hearing date, purpose, judge, and outcome/business notes.
-   - **Judgments tab** — list judgments with date, judge, and a link to the judgment PDF.
-   - **IAs tab** — list interlocutory applications with IA number, date filed, status.
-   - Each row uses the same `bg-background/50 border-border/10` rounded styling as the existing Petitioner/Respondent cards for visual consistency.
-   - Empty state per tab: muted "No records available" message.
+## Implementation plan
 
-3. **Defensive rendering**
-   - Use optional chaining (`cd.orders?.map(...)`) since the API may return either an array or be absent.
-   - Keep the existing `cd.{x}Count > 0` guard so chips only appear when there is data.
+1. Normalize the eCourts response in `src/pages/ECourts.tsx`
+   - Create derived arrays that support both old and actual API field names:
+     - Orders/Judgments: `cd.orders`, `cd.judgments`, and `cd.judgmentOrders`
+     - Hearings: `cd.hearings` and `cd.historyOfCaseHearings`
+     - IAs: `cd.ias` and `cd.interlocutoryApplications`
+   - This keeps compatibility if the API returns either naming style.
 
-4. **Animations**
-   - Wrap the drill-down panel in `AnimatePresence` + `motion.div` (matches the rest of the page) for a smooth open/close.
+2. Fix PDF link detection
+   - Recognize these possible PDF fields:
+     - `url`
+     - `fileUrl`
+     - `orderUrl`
+     - `judgmentUrl`
+     - `documentUrl`
+   - For relative API values like `order-1.pdf`, generate a valid PDF route through the existing backend function instead of linking to a broken relative app URL.
 
-### Files to change
+3. Add a backend proxy action for PDF viewing
+   - Extend `supabase/functions/ecourts-track/index.ts` with a safe `document-url` or `document-proxy` action.
+   - It will accept the CNR and file name/path, call the official eCourts document endpoint using the existing secret API key, and return either:
+     - a usable signed/remote URL if the API supports it, or
+     - the PDF bytes with the correct `application/pdf` content type.
+   - This is needed because PDF files from eCourts often require authenticated partner API access and cannot be opened directly from the browser.
 
-- `src/pages/ECourts.tsx` — the only file. Add `activeDetailTab` state, convert the four badges to clickable chips, and add the drill-down panel below them.
+4. Update the tab panels
+   - Orders tab: render `judgmentOrders` when separate `orders` is absent.
+   - Hearings tab: render `historyOfCaseHearings`, using:
+     - `businessOnDate`
+     - `hearingDate`
+     - `purposeOfListing`
+     - `judge`
+   - Judgments tab: render `judgmentOrders` as judgment/order records when no separate `judgments` array exists.
+   - IAs tab: render `interlocutoryApplications` when `ias` is absent.
 
-### What we are NOT changing
+5. Improve empty-state messaging
+   - Only show “No records available” when both the count and the normalized array are empty.
+   - If the count says records exist but the array is missing, show a clearer message such as: “Records exist at source, but details were not included in this response. Try Refresh.”
 
-- No edge function changes. The `case-detail` action already returns the orders/hearings/judgments arrays in `courtCaseData`.
-- No database / schema changes.
-- No new dependencies.
-- The CNR Lookup ↔ Case Search top-level tabs and the AI Case Analysis card stay exactly as they are.
+6. Fix the React warning in the console
+   - The console shows a ref warning around `Badge` and `AnimatePresence` in `ECourtsPage`.
+   - I will remove Badge usage inside animated direct children where needed or wrap animated content in plain DOM elements so the warning stops.
 
-## Result
+## Files to change
 
-Clicking **"1 Orders"**, **"2 Hearings"**, **"1 Judgments"**, or **"IAs"** will now expand a panel showing the actual records, with PDF links where the API provides them and an optional AI summary for orders.
+- `src/pages/ECourts.tsx`
+  - Add response normalization helpers.
+  - Update orders/hearings/judgments/IAs rendering.
+  - Add robust PDF link handling.
+  - Improve empty states.
+
+- `supabase/functions/ecourts-track/index.ts`
+  - Add a backend action for secure document/PDF retrieval or URL resolution.
+  - Keep the eCourts API key server-side only.
+
+## Expected result
+
+After a CNR lookup, clicking the chips will show the actual records from the API response:
+
+- Hearings will list the two hearing history records.
+- Orders/Judgments will show the returned PDF record.
+- The PDF action will open/download the document through the backend instead of showing an empty state or broken link.
