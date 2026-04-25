@@ -108,6 +108,70 @@ const ECourtsPage = () => {
 
   const cd = caseData?.courtCaseData;
 
+  // Normalize the eCourts response — the API uses different field names
+  // (judgmentOrders, historyOfCaseHearings, interlocutoryApplications) than
+  // our UI originally expected (orders/judgments/hearings/ias).
+  const judgmentOrders: any[] = Array.isArray(cd?.judgmentOrders) ? cd.judgmentOrders : [];
+  const ordersList: any[] = Array.isArray(cd?.orders) && cd.orders.length
+    ? cd.orders
+    : judgmentOrders.filter((o) =>
+        (o.orderType || o.type || "").toString().toLowerCase().includes("order")
+        || (!o.orderType && !o.type),
+      );
+  const judgmentsList: any[] = Array.isArray(cd?.judgments) && cd.judgments.length
+    ? cd.judgments
+    : judgmentOrders.filter((o) =>
+        (o.orderType || o.type || "").toString().toLowerCase().includes("judg"),
+      );
+  // If neither filter matched (e.g. type strings unknown), fall back to
+  // showing the same list everywhere so users can still see the records.
+  const ordersFinal = ordersList.length ? ordersList : judgmentOrders;
+  const judgmentsFinal = judgmentsList.length ? judgmentsList : (cd?.judgmentCount ? judgmentOrders : []);
+
+  const hearingsFinal: any[] = Array.isArray(cd?.hearings) && cd.hearings.length
+    ? cd.hearings
+    : Array.isArray(cd?.historyOfCaseHearings) ? cd.historyOfCaseHearings : [];
+
+  const iasFinal: any[] = Array.isArray(cd?.ias) && cd.ias.length
+    ? cd.ias
+    : Array.isArray(cd?.interlocutoryApplications) ? cd.interlocutoryApplications : [];
+
+  const openDocProxy = async (rec: any) => {
+    const raw =
+      rec?.url || rec?.fileUrl || rec?.orderUrl || rec?.judgmentUrl ||
+      rec?.documentUrl || rec?.filename || null;
+    if (!raw || !cd?.cnr) return;
+    if (/^https?:\/\//i.test(raw)) {
+      window.open(raw, "_blank", "noopener,noreferrer");
+      return;
+    }
+    try {
+      const resp = await fetch(`${SUPABASE_URL}/functions/v1/ecourts-track`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session?.access_token || ""}`,
+        },
+        body: JSON.stringify({
+          action: "document-proxy",
+          cnrNumber: cd.cnr,
+          searchParams: { filename: raw },
+        }),
+      });
+      if (!resp.ok) {
+        const err = await resp.json().catch(() => ({ error: "Failed to load document" }));
+        throw new Error(err.error || `Error ${resp.status}`);
+      }
+      const blob = await resp.blob();
+      const url = URL.createObjectURL(blob);
+      window.open(url, "_blank", "noopener,noreferrer");
+      // Revoke later so the new tab has time to load
+      setTimeout(() => URL.revokeObjectURL(url), 60_000);
+    } catch (err: any) {
+      toast({ title: "Could not open PDF", description: err.message, variant: "destructive" });
+    }
+  };
+
   const toggleDetailTab = (
     tab: "orders" | "hearings" | "judgments" | "ias",
   ) => setActiveDetailTab((prev) => (prev === tab ? null : tab));
@@ -292,40 +356,40 @@ const ECourtsPage = () => {
 
               {/* Interactive Stat Chips */}
               <div className="mt-4 flex flex-wrap gap-2">
-                {cd.orderCount > 0 && (
+                {(cd.orderCount > 0 || ordersFinal.length > 0) && (
                   <button
                     type="button"
                     onClick={() => toggleDetailTab("orders")}
                     className={chipClass(activeDetailTab === "orders")}
                   >
-                    <FileText className="w-3 h-3" /> {cd.orderCount} Orders
+                    <FileText className="w-3 h-3" /> {cd.orderCount || ordersFinal.length} Orders
                   </button>
                 )}
-                {cd.hearingCount > 0 && (
+                {(cd.hearingCount > 0 || hearingsFinal.length > 0) && (
                   <button
                     type="button"
                     onClick={() => toggleDetailTab("hearings")}
                     className={chipClass(activeDetailTab === "hearings")}
                   >
-                    <Clock className="w-3 h-3" /> {cd.hearingCount} Hearings
+                    <Clock className="w-3 h-3" /> {cd.hearingCount || hearingsFinal.length} Hearings
                   </button>
                 )}
-                {cd.iaCount > 0 && (
+                {(cd.iaCount > 0 || iasFinal.length > 0) && (
                   <button
                     type="button"
                     onClick={() => toggleDetailTab("ias")}
                     className={chipClass(activeDetailTab === "ias")}
                   >
-                    <Briefcase className="w-3 h-3" /> {cd.iaCount} IAs
+                    <Briefcase className="w-3 h-3" /> {cd.iaCount || iasFinal.length} IAs
                   </button>
                 )}
-                {cd.judgmentCount > 0 && (
+                {(cd.judgmentCount > 0 || judgmentsFinal.length > 0) && (
                   <button
                     type="button"
                     onClick={() => toggleDetailTab("judgments")}
                     className={chipClass(activeDetailTab === "judgments")}
                   >
-                    <Gavel className="w-3 h-3" /> {cd.judgmentCount} Judgments
+                    <Gavel className="w-3 h-3" /> {cd.judgmentCount || judgmentsFinal.length} Judgments
                   </button>
                 )}
               </div>
@@ -344,8 +408,8 @@ const ECourtsPage = () => {
                     <div className="pt-4 border-t border-border/20 space-y-2">
                       {activeDetailTab === "orders" && (
                         <>
-                          {cd.orders?.length ? (
-                            cd.orders.map((o: any, i: number) => (
+                          {ordersFinal.length ? (
+                            ordersFinal.map((o: any, i: number) => (
                               <div
                                 key={i}
                                 className="p-3 rounded-lg bg-background/50 border border-border/10"
@@ -353,7 +417,7 @@ const ECourtsPage = () => {
                                 <div className="flex items-start justify-between gap-3">
                                   <div className="flex-1 min-w-0">
                                     <p className="text-sm font-medium">
-                                      {o.title || o.orderName || `Order dated ${o.date || o.orderDate || "—"}`}
+                                      {o.title || o.orderName || o.orderType || `Order dated ${o.date || o.orderDate || "—"}`}
                                     </p>
                                     <p className="text-xs text-muted-foreground mt-1">
                                       {o.date || o.orderDate || "Date N/A"}
@@ -361,25 +425,24 @@ const ECourtsPage = () => {
                                     </p>
                                   </div>
                                   <div className="flex flex-col gap-1.5 shrink-0">
-                                    {(o.url || o.fileUrl) && (
-                                      <a
-                                        href={o.url || o.fileUrl}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
+                                    {(o.url || o.fileUrl || o.orderUrl || o.judgmentUrl || o.documentUrl || o.filename) && (
+                                      <button
+                                        type="button"
+                                        onClick={() => openDocProxy(o)}
                                         className="text-xs flex items-center gap-1 text-secondary hover:underline"
                                       >
                                         <ExternalLink className="w-3 h-3" /> View PDF
-                                      </a>
+                                      </button>
                                     )}
-                                    {o.filename && (
+                                    {(o.filename || o.orderUrl) && (
                                       <Button
                                         size="sm"
                                         variant="ghost"
                                         className="h-7 text-xs px-2"
-                                        onClick={() => handleOrderAi(o.filename)}
-                                        disabled={orderAiLoading === o.filename}
+                                        onClick={() => handleOrderAi(o.filename || o.orderUrl)}
+                                        disabled={orderAiLoading === (o.filename || o.orderUrl)}
                                       >
-                                        {orderAiLoading === o.filename ? (
+                                        {orderAiLoading === (o.filename || o.orderUrl) ? (
                                           <Loader2 className="w-3 h-3 mr-1 animate-spin" />
                                         ) : (
                                           <Sparkles className="w-3 h-3 mr-1" />
@@ -389,11 +452,11 @@ const ECourtsPage = () => {
                                     )}
                                   </div>
                                 </div>
-                                {o.filename && orderAi[o.filename] && (
+                                {(o.filename || o.orderUrl) && orderAi[o.filename || o.orderUrl] && (
                                   <div className="mt-2 p-2 rounded bg-muted/30 text-xs text-muted-foreground">
-                                    {orderAi[o.filename].summary ||
-                                      orderAi[o.filename].orderSummary ||
-                                      JSON.stringify(orderAi[o.filename]).slice(0, 400)}
+                                    {orderAi[o.filename || o.orderUrl].summary ||
+                                      orderAi[o.filename || o.orderUrl].orderSummary ||
+                                      JSON.stringify(orderAi[o.filename || o.orderUrl]).slice(0, 400)}
                                   </div>
                                 )}
                               </div>
@@ -408,18 +471,20 @@ const ECourtsPage = () => {
 
                       {activeDetailTab === "hearings" && (
                         <>
-                          {cd.hearings?.length ? (
-                            cd.hearings.map((h: any, i: number) => (
+                          {hearingsFinal.length ? (
+                            hearingsFinal.map((h: any, i: number) => (
                               <div
                                 key={i}
                                 className="p-3 rounded-lg bg-background/50 border border-border/10"
                               >
                                 <div className="flex items-center justify-between">
                                   <p className="text-sm font-medium">
-                                    {h.date || h.hearingDate || h.businessDate || "Date N/A"}
+                                    {h.hearingDate || h.date || h.businessOnDate || h.businessDate || "Date N/A"}
                                   </p>
-                                  {h.purpose && (
-                                    <Badge variant="outline" className="text-xs">{h.purpose}</Badge>
+                                  {(h.purpose || h.purposeOfListing) && (
+                                    <span className="text-xs px-2 py-0.5 rounded-full border border-border/30 text-muted-foreground">
+                                      {h.purpose || h.purposeOfListing}
+                                    </span>
                                   )}
                                 </div>
                                 {h.judge && (
@@ -427,9 +492,10 @@ const ECourtsPage = () => {
                                     Judge: {h.judge}
                                   </p>
                                 )}
-                                {(h.business || h.outcome || h.notes) && (
+                                {(h.business || h.outcome || h.notes || h.businessOnDate) && (
                                   <p className="text-xs text-muted-foreground mt-1">
-                                    {h.business || h.outcome || h.notes}
+                                    {h.business || h.outcome || h.notes ||
+                                      (h.businessOnDate ? `Business on: ${h.businessOnDate}` : "")}
                                   </p>
                                 )}
                               </div>
@@ -444,8 +510,8 @@ const ECourtsPage = () => {
 
                       {activeDetailTab === "judgments" && (
                         <>
-                          {cd.judgments?.length ? (
-                            cd.judgments.map((j: any, i: number) => (
+                          {judgmentsFinal.length ? (
+                            judgmentsFinal.map((j: any, i: number) => (
                               <div
                                 key={i}
                                 className="p-3 rounded-lg bg-background/50 border border-border/10"
@@ -453,22 +519,21 @@ const ECourtsPage = () => {
                                 <div className="flex items-start justify-between gap-3">
                                   <div className="flex-1 min-w-0">
                                     <p className="text-sm font-medium">
-                                      {j.title || `Judgment dated ${j.date || j.judgmentDate || "—"}`}
+                                      {j.title || j.orderType || `Judgment dated ${j.date || j.orderDate || j.judgmentDate || "—"}`}
                                     </p>
                                     <p className="text-xs text-muted-foreground mt-1">
-                                      {j.date || j.judgmentDate || "Date N/A"}
+                                      {j.date || j.orderDate || j.judgmentDate || "Date N/A"}
                                       {j.judge ? ` · ${j.judge}` : ""}
                                     </p>
                                   </div>
-                                  {(j.url || j.fileUrl) && (
-                                    <a
-                                      href={j.url || j.fileUrl}
-                                      target="_blank"
-                                      rel="noopener noreferrer"
+                                  {(j.url || j.fileUrl || j.orderUrl || j.judgmentUrl || j.documentUrl || j.filename) && (
+                                    <button
+                                      type="button"
+                                      onClick={() => openDocProxy(j)}
                                       className="text-xs flex items-center gap-1 text-secondary hover:underline shrink-0"
                                     >
                                       <ExternalLink className="w-3 h-3" /> View PDF
-                                    </a>
+                                    </button>
                                   )}
                                 </div>
                               </div>
@@ -483,8 +548,8 @@ const ECourtsPage = () => {
 
                       {activeDetailTab === "ias" && (
                         <>
-                          {cd.ias?.length ? (
-                            cd.ias.map((ia: any, i: number) => (
+                          {iasFinal.length ? (
+                            iasFinal.map((ia: any, i: number) => (
                               <div
                                 key={i}
                                 className="p-3 rounded-lg bg-background/50 border border-border/10"
@@ -494,7 +559,9 @@ const ECourtsPage = () => {
                                     {ia.iaNumber || ia.number || `IA #${i + 1}`}
                                   </p>
                                   {ia.status && (
-                                    <Badge variant="outline" className="text-xs">{ia.status}</Badge>
+                                    <span className="text-xs px-2 py-0.5 rounded-full border border-border/30 text-muted-foreground">
+                                      {ia.status}
+                                    </span>
                                   )}
                                 </div>
                                 <p className="text-xs text-muted-foreground mt-1">
