@@ -162,6 +162,12 @@ const ECourtsPage = () => {
         const err = await resp.json().catch(() => ({ error: "Failed to load document" }));
         throw new Error(err.error || `Error ${resp.status}`);
       }
+      const ctype = resp.headers.get("content-type") || "";
+      // Edge function returns JSON when the source PDF is unavailable.
+      if (ctype.includes("application/json")) {
+        const data = await resp.json().catch(() => ({}));
+        throw new Error(data.error || "Document not available from eCourts.");
+      }
       const blob = await resp.blob();
       const url = URL.createObjectURL(blob);
       window.open(url, "_blank", "noopener,noreferrer");
