@@ -379,40 +379,40 @@ const ECourtsPage = () => {
 
               {/* Interactive Stat Chips */}
               <div className="mt-4 flex flex-wrap gap-2">
-                {cd.orderCount > 0 && (
+                {(cd.orderCount > 0 || ordersFinal.length > 0) && (
                   <button
                     type="button"
                     onClick={() => toggleDetailTab("orders")}
                     className={chipClass(activeDetailTab === "orders")}
                   >
-                    <FileText className="w-3 h-3" /> {cd.orderCount} Orders
+                    <FileText className="w-3 h-3" /> {cd.orderCount || ordersFinal.length} Orders
                   </button>
                 )}
-                {cd.hearingCount > 0 && (
+                {(cd.hearingCount > 0 || hearingsFinal.length > 0) && (
                   <button
                     type="button"
                     onClick={() => toggleDetailTab("hearings")}
                     className={chipClass(activeDetailTab === "hearings")}
                   >
-                    <Clock className="w-3 h-3" /> {cd.hearingCount} Hearings
+                    <Clock className="w-3 h-3" /> {cd.hearingCount || hearingsFinal.length} Hearings
                   </button>
                 )}
-                {cd.iaCount > 0 && (
+                {(cd.iaCount > 0 || iasFinal.length > 0) && (
                   <button
                     type="button"
                     onClick={() => toggleDetailTab("ias")}
                     className={chipClass(activeDetailTab === "ias")}
                   >
-                    <Briefcase className="w-3 h-3" /> {cd.iaCount} IAs
+                    <Briefcase className="w-3 h-3" /> {cd.iaCount || iasFinal.length} IAs
                   </button>
                 )}
-                {cd.judgmentCount > 0 && (
+                {(cd.judgmentCount > 0 || judgmentsFinal.length > 0) && (
                   <button
                     type="button"
                     onClick={() => toggleDetailTab("judgments")}
                     className={chipClass(activeDetailTab === "judgments")}
                   >
-                    <Gavel className="w-3 h-3" /> {cd.judgmentCount} Judgments
+                    <Gavel className="w-3 h-3" /> {cd.judgmentCount || judgmentsFinal.length} Judgments
                   </button>
                 )}
               </div>
