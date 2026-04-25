@@ -108,6 +108,93 @@ const ECourtsPage = () => {
 
   const cd = caseData?.courtCaseData;
 
+  // Normalize the eCourts response — the API uses different field names
+  // (judgmentOrders, historyOfCaseHearings, interlocutoryApplications) than
+  // our UI originally expected (orders/judgments/hearings/ias).
+  const judgmentOrders: any[] = Array.isArray(cd?.judgmentOrders) ? cd.judgmentOrders : [];
+  const ordersList: any[] = Array.isArray(cd?.orders) && cd.orders.length
+    ? cd.orders
+    : judgmentOrders.filter((o) =>
+        (o.orderType || o.type || "").toString().toLowerCase().includes("order")
+        || (!o.orderType && !o.type),
+      );
+  const judgmentsList: any[] = Array.isArray(cd?.judgments) && cd.judgments.length
+    ? cd.judgments
+    : judgmentOrders.filter((o) =>
+        (o.orderType || o.type || "").toString().toLowerCase().includes("judg"),
+      );
+  // If neither filter matched (e.g. type strings unknown), fall back to
+  // showing the same list everywhere so users can still see the records.
+  const ordersFinal = ordersList.length ? ordersList : judgmentOrders;
+  const judgmentsFinal = judgmentsList.length ? judgmentsList : (cd?.judgmentCount ? judgmentOrders : []);
+
+  const hearingsFinal: any[] = Array.isArray(cd?.hearings) && cd.hearings.length
+    ? cd.hearings
+    : Array.isArray(cd?.historyOfCaseHearings) ? cd.historyOfCaseHearings : [];
+
+  const iasFinal: any[] = Array.isArray(cd?.ias) && cd.ias.length
+    ? cd.ias
+    : Array.isArray(cd?.interlocutoryApplications) ? cd.interlocutoryApplications : [];
+
+  // Resolve a viewable URL for an order/judgment record. If the API returned
+  // a relative filename like "order-1.pdf", route it through our backend
+  // document-proxy action so the eCourts API key stays server-side.
+  const resolveDocUrl = (rec: any): string | null => {
+    const raw =
+      rec?.url || rec?.fileUrl || rec?.orderUrl || rec?.judgmentUrl ||
+      rec?.documentUrl || rec?.filename || null;
+    if (!raw) return null;
+    if (/^https?:\/\//i.test(raw)) return raw;
+    if (!cd?.cnr) return null;
+    const token = session?.access_token || "";
+    const params = new URLSearchParams({
+      action: "document-proxy",
+      cnr: cd.cnr,
+      filename: raw,
+      ...(token ? { auth: token } : {}),
+    });
+    // Fallback: open through our edge function via POST is preferable,
+    // but for `target=_blank` we need a GET. We use a small inline form
+    // below via a button handler instead — return a synthetic marker.
+    return `proxy:${raw}`;
+  };
+
+  const openDocProxy = async (rec: any) => {
+    const raw =
+      rec?.url || rec?.fileUrl || rec?.orderUrl || rec?.judgmentUrl ||
+      rec?.documentUrl || rec?.filename || null;
+    if (!raw || !cd?.cnr) return;
+    if (/^https?:\/\//i.test(raw)) {
+      window.open(raw, "_blank", "noopener,noreferrer");
+      return;
+    }
+    try {
+      const resp = await fetch(`${SUPABASE_URL}/functions/v1/ecourts-track`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session?.access_token || ""}`,
+        },
+        body: JSON.stringify({
+          action: "document-proxy",
+          cnrNumber: cd.cnr,
+          searchParams: { filename: raw },
+        }),
+      });
+      if (!resp.ok) {
+        const err = await resp.json().catch(() => ({ error: "Failed to load document" }));
+        throw new Error(err.error || `Error ${resp.status}`);
+      }
+      const blob = await resp.blob();
+      const url = URL.createObjectURL(blob);
+      window.open(url, "_blank", "noopener,noreferrer");
+      // Revoke later so the new tab has time to load
+      setTimeout(() => URL.revokeObjectURL(url), 60_000);
+    } catch (err: any) {
+      toast({ title: "Could not open PDF", description: err.message, variant: "destructive" });
+    }
+  };
+
   const toggleDetailTab = (
     tab: "orders" | "hearings" | "judgments" | "ias",
   ) => setActiveDetailTab((prev) => (prev === tab ? null : tab));
