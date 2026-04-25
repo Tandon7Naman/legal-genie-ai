@@ -163,15 +163,24 @@ const ECourtsPage = () => {
         throw new Error(err.error || `Error ${resp.status}`);
       }
       const ctype = resp.headers.get("content-type") || "";
-      // Edge function returns JSON when the source PDF is unavailable.
       if (ctype.includes("application/json")) {
         const data = await resp.json().catch(() => ({}));
         throw new Error(data.error || "Document not available from eCourts.");
       }
       const blob = await resp.blob();
       const url = URL.createObjectURL(blob);
-      window.open(url, "_blank", "noopener,noreferrer");
-      // Revoke later so the new tab has time to load
+      const filename = (raw.split("/").pop() || "document.pdf").replace(/[^a-zA-Z0-9._-]/g, "_");
+      // Trigger a same-page download instead of opening a new tab. Browser
+      // ad-blockers and popup blockers (ERR_BLOCKED_BY_CLIENT) commonly block
+      // window.open(blobUrl), but anchor-driven downloads are not blocked.
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename.endsWith(".pdf") ? filename : `${filename}.pdf`;
+      a.rel = "noopener";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      toast({ title: "PDF downloaded", description: a.download });
       setTimeout(() => URL.revokeObjectURL(url), 60_000);
     } catch (err: any) {
       toast({ title: "Could not open PDF", description: err.message, variant: "destructive" });
