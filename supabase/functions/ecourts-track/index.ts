@@ -93,17 +93,40 @@ serve(async (req) => {
           throw new Error("CNR and filename required");
         }
         const filename = String(searchParams.filename).replace(/^\/+/, "");
-        const docUrl = filename.startsWith("http")
-          ? filename
-          : `${ECOURTS_BASE}/case/${cnrNumber}/document/${filename}`;
-        const resp = await fetch(docUrl, { headers });
-        if (!resp.ok) {
-          const errText = await resp.text().catch(() => "");
+
+        // The eCourts Partner API exposes order/judgment PDFs under several
+        // possible paths depending on the document type. Try them in order
+        // until one succeeds.
+        const candidates = filename.startsWith("http")
+          ? [filename]
+          : [
+              `${ECOURTS_BASE}/case/${cnrNumber}/order/${filename}`,
+              `${ECOURTS_BASE}/case/${cnrNumber}/judgment/${filename}`,
+              `${ECOURTS_BASE}/case/${cnrNumber}/document/${filename}`,
+              `${ECOURTS_BASE}/case/${cnrNumber}/file/${filename}`,
+            ];
+
+        let resp: Response | null = null;
+        let lastStatus = 404;
+        let lastBody = "";
+        for (const url of candidates) {
+          const r = await fetch(url, { headers });
+          if (r.ok) { resp = r; break; }
+          lastStatus = r.status;
+          lastBody = await r.text().catch(() => "");
+          console.log(`document-proxy: ${r.status} for ${url}`);
+        }
+
+        if (!resp) {
           return new Response(
-            JSON.stringify({ error: `Document fetch error ${resp.status}: ${errText.slice(0, 200)}` }),
-            { status: resp.status, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+            JSON.stringify({
+              error: `Document not available from eCourts (status ${lastStatus}). ${lastBody.slice(0, 160)}`,
+              fallback: true,
+            }),
+            { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
           );
         }
+
         const contentType = resp.headers.get("content-type") || "application/pdf";
         const buf = await resp.arrayBuffer();
         return new Response(buf, {
