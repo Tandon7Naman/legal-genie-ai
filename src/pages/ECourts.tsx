@@ -136,29 +136,6 @@ const ECourtsPage = () => {
     ? cd.ias
     : Array.isArray(cd?.interlocutoryApplications) ? cd.interlocutoryApplications : [];
 
-  // Resolve a viewable URL for an order/judgment record. If the API returned
-  // a relative filename like "order-1.pdf", route it through our backend
-  // document-proxy action so the eCourts API key stays server-side.
-  const resolveDocUrl = (rec: any): string | null => {
-    const raw =
-      rec?.url || rec?.fileUrl || rec?.orderUrl || rec?.judgmentUrl ||
-      rec?.documentUrl || rec?.filename || null;
-    if (!raw) return null;
-    if (/^https?:\/\//i.test(raw)) return raw;
-    if (!cd?.cnr) return null;
-    const token = session?.access_token || "";
-    const params = new URLSearchParams({
-      action: "document-proxy",
-      cnr: cd.cnr,
-      filename: raw,
-      ...(token ? { auth: token } : {}),
-    });
-    // Fallback: open through our edge function via POST is preferable,
-    // but for `target=_blank` we need a GET. We use a small inline form
-    // below via a button handler instead — return a synthetic marker.
-    return `proxy:${raw}`;
-  };
-
   const openDocProxy = async (rec: any) => {
     const raw =
       rec?.url || rec?.fileUrl || rec?.orderUrl || rec?.judgmentUrl ||
