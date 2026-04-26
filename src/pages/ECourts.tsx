@@ -193,20 +193,110 @@ const ECourtsPage = () => {
     tab: "orders" | "hearings" | "judgments" | "ias",
   ) => setActiveDetailTab((prev) => (prev === tab ? null : tab));
 
-  const handleOrderAi = async (filename: string) => {
-    if (!cd?.cnr || !filename || orderAi[filename]) return;
-    setOrderAiLoading(filename);
+  const streamOrderAnalysis = async (order: any, force = false) => {
+    const key = order.filename || order.orderUrl;
+    if (!cd?.cnr || !key) return;
+    const existing = orderAnalysis[key];
+    if (!force && existing && existing.text && !existing.error) {
+      setOrderAnalysis((p) => ({ ...p, [key]: { ...existing, expanded: true } }));
+      return;
+    }
+
+    setOrderAnalysis((p) => ({
+      ...p,
+      [key]: { text: "", loading: true, expanded: true, error: undefined },
+    }));
+
     try {
-      const res = await callApi({
-        action: "order-ai",
-        cnrNumber: cd.cnr,
-        searchParams: { filename },
+      const resp = await fetch(`${SUPABASE_URL}/functions/v1/order-analyze`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session?.access_token || ""}`,
+        },
+        body: JSON.stringify({
+          cnrNumber: cd.cnr,
+          filename: key,
+          orderMeta: order,
+          caseContext: {
+            cnr: cd.cnr,
+            caseType: cd?.caseDetails?.caseType,
+            registrationNumber: cd?.caseDetails?.registrationNumber,
+            filingNumber: cd?.caseDetails?.filingNumber,
+            court: cd?.caseDetails?.court || cd?.court,
+            parties: {
+              petitioners: cd?.petitioners || cd?.petitionerName,
+              respondents: cd?.respondents || cd?.respondentName,
+            },
+          },
+        }),
       });
-      setOrderAi((prev) => ({ ...prev, [filename]: res.data || res }));
+
+      if (!resp.ok) {
+        const err = await resp.json().catch(() => ({ error: `Error ${resp.status}` }));
+        throw new Error(err.error || `Error ${resp.status}`);
+      }
+      if (!resp.body) throw new Error("No response stream");
+
+      const reader = resp.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+      let accumulated = "";
+      let done = false;
+
+      while (!done) {
+        const { done: streamDone, value } = await reader.read();
+        if (streamDone) break;
+        buffer += decoder.decode(value, { stream: true });
+        let nl: number;
+        while ((nl = buffer.indexOf("\n")) !== -1) {
+          let line = buffer.slice(0, nl);
+          buffer = buffer.slice(nl + 1);
+          if (line.endsWith("\r")) line = line.slice(0, -1);
+          if (!line.startsWith("data: ")) continue;
+          const json = line.slice(6).trim();
+          if (json === "[DONE]") { done = true; break; }
+          try {
+            const parsed = JSON.parse(json);
+            const delta = parsed.choices?.[0]?.delta?.content;
+            if (delta) {
+              accumulated += delta;
+              setOrderAnalysis((p) => ({
+                ...p,
+                [key]: { ...(p[key] || { expanded: true, loading: true }), text: accumulated, loading: true, expanded: true },
+              }));
+            }
+          } catch {
+            buffer = line + "\n" + buffer;
+            break;
+          }
+        }
+      }
+
+      setOrderAnalysis((p) => ({
+        ...p,
+        [key]: { text: accumulated, loading: false, expanded: true },
+      }));
     } catch (err: any) {
-      toast({ title: "AI Summary Failed", description: err.message, variant: "destructive" });
-    } finally {
-      setOrderAiLoading(null);
+      setOrderAnalysis((p) => ({
+        ...p,
+        [key]: { text: "", loading: false, expanded: true, error: err.message },
+      }));
+      toast({ title: "AI Analysis Failed", description: err.message, variant: "destructive" });
+    }
+  };
+
+  const collapseOrderAnalysis = (key: string) =>
+    setOrderAnalysis((p) => ({ ...p, [key]: { ...(p[key] || { text: "", loading: false }), expanded: false } }));
+
+  const copyOrderAnalysis = async (key: string) => {
+    const t = orderAnalysis[key]?.text;
+    if (!t) return;
+    try {
+      await navigator.clipboard.writeText(t);
+      toast({ title: "Copied to clipboard" });
+    } catch {
+      toast({ title: "Copy failed", variant: "destructive" });
     }
   };
 
