@@ -10,8 +10,9 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   Scale, Search, Loader2, AlertCircle, Gavel, RefreshCw,
   FileText, Users, Calendar, MapPin, Clock, ChevronRight,
-  ExternalLink, Sparkles, Briefcase,
+  ExternalLink, Sparkles, Briefcase, Copy, X, RotateCw,
 } from "lucide-react";
+import ReactMarkdown from "react-markdown";
 
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
@@ -27,8 +28,9 @@ const ECourtsPage = () => {
   const [activeDetailTab, setActiveDetailTab] = useState<
     "orders" | "hearings" | "judgments" | "ias" | null
   >(null);
-  const [orderAi, setOrderAi] = useState<Record<string, any>>({});
-  const [orderAiLoading, setOrderAiLoading] = useState<string | null>(null);
+  const [orderAnalysis, setOrderAnalysis] = useState<
+    Record<string, { text: string; loading: boolean; expanded: boolean; error?: string }>
+  >({});
 
   // Search fields
   const [searchQuery, setSearchQuery] = useState("");
@@ -60,7 +62,7 @@ const ECourtsPage = () => {
     setLoading(true);
     setCaseData(null);
     setActiveDetailTab(null);
-    setOrderAi({});
+    setOrderAnalysis({});
     try {
       const result = await callApi({ action: "case-detail", cnrNumber: trimmed });
       setCaseData(result.data);
@@ -191,20 +193,110 @@ const ECourtsPage = () => {
     tab: "orders" | "hearings" | "judgments" | "ias",
   ) => setActiveDetailTab((prev) => (prev === tab ? null : tab));
 
-  const handleOrderAi = async (filename: string) => {
-    if (!cd?.cnr || !filename || orderAi[filename]) return;
-    setOrderAiLoading(filename);
+  const streamOrderAnalysis = async (order: any, force = false) => {
+    const key = order.filename || order.orderUrl;
+    if (!cd?.cnr || !key) return;
+    const existing = orderAnalysis[key];
+    if (!force && existing && existing.text && !existing.error) {
+      setOrderAnalysis((p) => ({ ...p, [key]: { ...existing, expanded: true } }));
+      return;
+    }
+
+    setOrderAnalysis((p) => ({
+      ...p,
+      [key]: { text: "", loading: true, expanded: true, error: undefined },
+    }));
+
     try {
-      const res = await callApi({
-        action: "order-ai",
-        cnrNumber: cd.cnr,
-        searchParams: { filename },
+      const resp = await fetch(`${SUPABASE_URL}/functions/v1/order-analyze`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session?.access_token || ""}`,
+        },
+        body: JSON.stringify({
+          cnrNumber: cd.cnr,
+          filename: key,
+          orderMeta: order,
+          caseContext: {
+            cnr: cd.cnr,
+            caseType: cd?.caseDetails?.caseType,
+            registrationNumber: cd?.caseDetails?.registrationNumber,
+            filingNumber: cd?.caseDetails?.filingNumber,
+            court: cd?.caseDetails?.court || cd?.court,
+            parties: {
+              petitioners: cd?.petitioners || cd?.petitionerName,
+              respondents: cd?.respondents || cd?.respondentName,
+            },
+          },
+        }),
       });
-      setOrderAi((prev) => ({ ...prev, [filename]: res.data || res }));
+
+      if (!resp.ok) {
+        const err = await resp.json().catch(() => ({ error: `Error ${resp.status}` }));
+        throw new Error(err.error || `Error ${resp.status}`);
+      }
+      if (!resp.body) throw new Error("No response stream");
+
+      const reader = resp.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+      let accumulated = "";
+      let done = false;
+
+      while (!done) {
+        const { done: streamDone, value } = await reader.read();
+        if (streamDone) break;
+        buffer += decoder.decode(value, { stream: true });
+        let nl: number;
+        while ((nl = buffer.indexOf("\n")) !== -1) {
+          let line = buffer.slice(0, nl);
+          buffer = buffer.slice(nl + 1);
+          if (line.endsWith("\r")) line = line.slice(0, -1);
+          if (!line.startsWith("data: ")) continue;
+          const json = line.slice(6).trim();
+          if (json === "[DONE]") { done = true; break; }
+          try {
+            const parsed = JSON.parse(json);
+            const delta = parsed.choices?.[0]?.delta?.content;
+            if (delta) {
+              accumulated += delta;
+              setOrderAnalysis((p) => ({
+                ...p,
+                [key]: { ...(p[key] || { expanded: true, loading: true }), text: accumulated, loading: true, expanded: true },
+              }));
+            }
+          } catch {
+            buffer = line + "\n" + buffer;
+            break;
+          }
+        }
+      }
+
+      setOrderAnalysis((p) => ({
+        ...p,
+        [key]: { text: accumulated, loading: false, expanded: true },
+      }));
     } catch (err: any) {
-      toast({ title: "AI Summary Failed", description: err.message, variant: "destructive" });
-    } finally {
-      setOrderAiLoading(null);
+      setOrderAnalysis((p) => ({
+        ...p,
+        [key]: { text: "", loading: false, expanded: true, error: err.message },
+      }));
+      toast({ title: "AI Analysis Failed", description: err.message, variant: "destructive" });
+    }
+  };
+
+  const collapseOrderAnalysis = (key: string) =>
+    setOrderAnalysis((p) => ({ ...p, [key]: { ...(p[key] || { text: "", loading: false }), expanded: false } }));
+
+  const copyOrderAnalysis = async (key: string) => {
+    const t = orderAnalysis[key]?.text;
+    if (!t) return;
+    try {
+      await navigator.clipboard.writeText(t);
+      toast({ title: "Copied to clipboard" });
+    } catch {
+      toast({ title: "Copy failed", variant: "destructive" });
     }
   };
 
@@ -454,26 +546,85 @@ const ECourtsPage = () => {
                                         size="sm"
                                         variant="ghost"
                                         className="h-7 text-xs px-2"
-                                        onClick={() => handleOrderAi(o.filename || o.orderUrl)}
-                                        disabled={orderAiLoading === (o.filename || o.orderUrl)}
+                                        onClick={() => streamOrderAnalysis(o)}
+                                        disabled={orderAnalysis[o.filename || o.orderUrl]?.loading}
                                       >
-                                        {orderAiLoading === (o.filename || o.orderUrl) ? (
+                                        {orderAnalysis[o.filename || o.orderUrl]?.loading ? (
                                           <Loader2 className="w-3 h-3 mr-1 animate-spin" />
                                         ) : (
                                           <Sparkles className="w-3 h-3 mr-1" />
                                         )}
-                                        AI Summary
+                                        Deep Analysis
                                       </Button>
                                     )}
                                   </div>
                                 </div>
-                                {(o.filename || o.orderUrl) && orderAi[o.filename || o.orderUrl] && (
-                                  <div className="mt-2 p-2 rounded bg-muted/30 text-xs text-muted-foreground">
-                                    {orderAi[o.filename || o.orderUrl].summary ||
-                                      orderAi[o.filename || o.orderUrl].orderSummary ||
-                                      JSON.stringify(orderAi[o.filename || o.orderUrl]).slice(0, 400)}
-                                  </div>
-                                )}
+                                {(() => {
+                                  const key = o.filename || o.orderUrl;
+                                  const a = key ? orderAnalysis[key] : undefined;
+                                  if (!a || !a.expanded) return null;
+                                  return (
+                                    <div className="mt-3 rounded-lg border border-secondary/30 bg-background/70 overflow-hidden">
+                                      <div className="flex items-center justify-between px-3 py-2 border-b border-border/20 bg-secondary/5">
+                                        <div className="flex items-center gap-2 text-xs font-semibold text-secondary">
+                                          <Sparkles className="w-3.5 h-3.5" />
+                                          Research-grade Order Analysis
+                                          {a.loading && (
+                                            <span className="flex items-center gap-1 text-muted-foreground font-normal">
+                                              <Loader2 className="w-3 h-3 animate-spin" /> analysing…
+                                            </span>
+                                          )}
+                                        </div>
+                                        <div className="flex items-center gap-1">
+                                          <Button
+                                            size="sm" variant="ghost" className="h-6 px-2 text-xs"
+                                            onClick={() => copyOrderAnalysis(key)}
+                                            disabled={!a.text}
+                                          >
+                                            <Copy className="w-3 h-3 mr-1" /> Copy
+                                          </Button>
+                                          <Button
+                                            size="sm" variant="ghost" className="h-6 px-2 text-xs"
+                                            onClick={() => streamOrderAnalysis(o, true)}
+                                            disabled={a.loading}
+                                          >
+                                            <RotateCw className="w-3 h-3 mr-1" /> Re-generate
+                                          </Button>
+                                          <Button
+                                            size="sm" variant="ghost" className="h-6 w-6 p-0"
+                                            onClick={() => collapseOrderAnalysis(key)}
+                                          >
+                                            <X className="w-3 h-3" />
+                                          </Button>
+                                        </div>
+                                      </div>
+                                      <div className="max-h-[480px] overflow-y-auto px-4 py-3">
+                                        {a.error ? (
+                                          <p className="text-xs text-destructive">{a.error}</p>
+                                        ) : a.text ? (
+                                          <div className="prose prose-sm dark:prose-invert max-w-none prose-headings:text-foreground prose-headings:font-semibold prose-h2:text-sm prose-h2:mt-4 prose-h2:mb-2 prose-p:text-xs prose-p:leading-relaxed prose-li:text-xs prose-strong:text-foreground prose-em:text-muted-foreground">
+                                            <ReactMarkdown>{a.text}</ReactMarkdown>
+                                          </div>
+                                        ) : (
+                                          <div className="space-y-2">
+                                            <div className="h-3 w-1/3 rounded bg-muted/40 animate-pulse" />
+                                            <div className="h-2 w-full rounded bg-muted/30 animate-pulse" />
+                                            <div className="h-2 w-11/12 rounded bg-muted/30 animate-pulse" />
+                                            <div className="h-2 w-3/4 rounded bg-muted/30 animate-pulse" />
+                                            <div className="h-3 w-1/4 rounded bg-muted/40 animate-pulse mt-3" />
+                                            <div className="h-2 w-full rounded bg-muted/30 animate-pulse" />
+                                            <div className="h-2 w-5/6 rounded bg-muted/30 animate-pulse" />
+                                          </div>
+                                        )}
+                                        {!a.loading && a.text && (
+                                          <p className="mt-4 pt-3 border-t border-border/20 text-[10px] text-muted-foreground italic">
+                                            Generated by AI — verify all citations and section numbers against the original source before relying on them.
+                                          </p>
+                                        )}
+                                      </div>
+                                    </div>
+                                  );
+                                })()}
                               </div>
                             ))
                           ) : (

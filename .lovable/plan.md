@@ -1,95 +1,66 @@
-## Problem found
+## Goal
 
-The CNR lookup response already includes the data, but the frontend is reading the wrong field names.
+Upgrade the Orders tab "AI Summary" from a one-line jist into a full research-grade analysis panel with structured sections, streaming output, and copy/expand actions — suitable for a litigator preparing arguments.
 
-For the tested CNR, the API returned:
+## What changes for the user
 
-```text
-historyOfCaseHearings: 2 records
-judgmentOrders: 1 PDF record with orderUrl: "order-1.pdf"
-orderCount: 1
-hearingCount: 2
-judgmentCount: 1
-```
+When the user clicks **AI Summary** on an order in the Orders tab:
 
-But `src/pages/ECourts.tsx` currently renders only:
+- Instead of a tiny grey paragraph, a rich expandable analysis card opens under the order with these sections rendered as Markdown:
+  - Order at a Glance (date, court, judge, type)
+  - Procedural Posture & Background
+  - Issues Considered by the Court
+  - Court's Reasoning (paragraph-by-paragraph)
+  - Final Directions / Operative Order
+  - Statutes & Provisions Relied Upon (with section numbers)
+  - Precedents Cited (with full citations)
+  - Implications for the Case (next steps, appeal/review angles)
+  - Research Leads (related judgments, doctrines, follow-up questions)
+- Output streams token-by-token so the user sees progress immediately.
+- Buttons: **Copy**, **Re-generate**, **Collapse**.
+- Loading state shows the section skeleton instead of just a spinner.
 
-```text
-cd.orders
-cd.hearings
-cd.judgments
-cd.ias
-```
+## Technical plan
 
-Those arrays do not exist in the actual response, so the UI falls into:
+### 1. New edge function: `order-analyze`
 
-```text
-No order records available.
-No hearing records available.
-No judgment records available.
-```
+Create `supabase/functions/order-analyze/index.ts` that:
 
-There is also a PDF-link mismatch: the API returns `orderUrl`, while the UI only checks `url` or `fileUrl`.
+- Accepts `{ cnrNumber, filename, orderMeta }` where `orderMeta` is the raw order record from the eCourts response (date, judge, type, etc.).
+- Calls the existing `ecourts-track` `order-ai` action **internally** (server-side fetch to the eCourts partner API) to pull whatever order text/summary the eCourts side exposes. Wrap in try/catch — if it fails, proceed with `orderMeta` only.
+- Sends a long, structured system prompt to **Lovable AI Gateway** (`google/gemini-2.5-pro` for depth) asking for the 9 sections above, with explicit instructions to:
+  - Cite real Indian statutes with section numbers
+  - Cite real Supreme Court / High Court judgments with full citation format
+  - Be honest when information is missing rather than hallucinating
+  - Use Markdown headings (`##`) per section
+- Streams the SSE response back to the browser (same pattern as `brief-analyze` / `case-analyze`).
+- Handles 429 / 402 with friendly errors.
 
-## Implementation plan
+### 2. Frontend: replace the inline summary block in `src/pages/ECourts.tsx`
 
-1. Normalize the eCourts response in `src/pages/ECourts.tsx`
-   - Create derived arrays that support both old and actual API field names:
-     - Orders/Judgments: `cd.orders`, `cd.judgments`, and `cd.judgmentOrders`
-     - Hearings: `cd.hearings` and `cd.historyOfCaseHearings`
-     - IAs: `cd.ias` and `cd.interlocutoryApplications`
-   - This keeps compatibility if the API returns either naming style.
+- Remove the current `handleOrderAi` (which calls `order-ai` and stores a tiny string).
+- Replace `orderAi` state with `orderAnalysis: Record<string, { text: string; loading: boolean; expanded: boolean }>`.
+- New `streamOrderAnalysis(order)` function that:
+  - POSTs to `/functions/v1/order-analyze` with the order metadata.
+  - Reads the SSE stream line-by-line (same parser used in `BriefAnalyzer.tsx`).
+  - Appends tokens into `orderAnalysis[key].text` as they arrive.
+- New `<OrderAnalysisCard />` inline component rendering the streaming markdown via `react-markdown` (already used elsewhere) inside a `max-h-[480px] overflow-y-auto` panel with a header bar containing **Copy**, **Re-generate**, **Collapse** buttons.
+- Keep the existing **View PDF** button untouched.
 
-2. Fix PDF link detection
-   - Recognize these possible PDF fields:
-     - `url`
-     - `fileUrl`
-     - `orderUrl`
-     - `judgmentUrl`
-     - `documentUrl`
-   - For relative API values like `order-1.pdf`, generate a valid PDF route through the existing backend function instead of linking to a broken relative app URL.
+### 3. UX polish
 
-3. Add a backend proxy action for PDF viewing
-   - Extend `supabase/functions/ecourts-track/index.ts` with a safe `document-url` or `document-proxy` action.
-   - It will accept the CNR and file name/path, call the official eCourts document endpoint using the existing secret API key, and return either:
-     - a usable signed/remote URL if the API supports it, or
-     - the PDF bytes with the correct `application/pdf` content type.
-   - This is needed because PDF files from eCourts often require authenticated partner API access and cannot be opened directly from the browser.
-
-4. Update the tab panels
-   - Orders tab: render `judgmentOrders` when separate `orders` is absent.
-   - Hearings tab: render `historyOfCaseHearings`, using:
-     - `businessOnDate`
-     - `hearingDate`
-     - `purposeOfListing`
-     - `judge`
-   - Judgments tab: render `judgmentOrders` as judgment/order records when no separate `judgments` array exists.
-   - IAs tab: render `interlocutoryApplications` when `ias` is absent.
-
-5. Improve empty-state messaging
-   - Only show “No records available” when both the count and the normalized array are empty.
-   - If the count says records exist but the array is missing, show a clearer message such as: “Records exist at source, but details were not included in this response. Try Refresh.”
-
-6. Fix the React warning in the console
-   - The console shows a ref warning around `Badge` and `AnimatePresence` in `ECourtsPage`.
-   - I will remove Badge usage inside animated direct children where needed or wrap animated content in plain DOM elements so the warning stops.
+- While streaming, show 3 skeleton lines + a small "Analyzing order…" label with the spinner.
+- Once streaming completes, show a small footer: "Generated by AI — verify citations before relying on them." (compliance with the existing AI disclaimer pattern).
+- The card is collapsible so the orders list stays scannable; the analysis is cached per filename so collapsing/re-expanding doesn't re-fetch.
 
 ## Files to change
 
-- `src/pages/ECourts.tsx`
-  - Add response normalization helpers.
-  - Update orders/hearings/judgments/IAs rendering.
-  - Add robust PDF link handling.
-  - Improve empty states.
+- **New**: `supabase/functions/order-analyze/index.ts` — streaming AI analysis function.
+- **Edit**: `src/pages/ECourts.tsx` — replace small AI summary block with the new streaming, multi-section analysis card; add `react-markdown` rendering.
 
-- `supabase/functions/ecourts-track/index.ts`
-  - Add a backend action for secure document/PDF retrieval or URL resolution.
-  - Keep the eCourts API key server-side only.
+No database migrations, no new secrets (uses existing `LOVABLE_API_KEY` and `ECOURTS_API_KEY`).
 
-## Expected result
+## Out of scope
 
-After a CNR lookup, clicking the chips will show the actual records from the API response:
-
-- Hearings will list the two hearing history records.
-- Orders/Judgments will show the returned PDF record.
-- The PDF action will open/download the document through the backend instead of showing an empty state or broken link.
+- PDF text extraction from the actual order PDF (eCourts partner API does not expose OCR text reliably; we rely on whatever `order-ai` returns plus structured metadata). Can be added later if the user wants deeper extraction.
+- Persisting analyses to the database — kept in component state for now. Easy to add if requested.
