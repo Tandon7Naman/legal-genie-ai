@@ -10,8 +10,9 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   Scale, Search, Loader2, AlertCircle, Gavel, RefreshCw,
   FileText, Users, Calendar, MapPin, Clock, ChevronRight,
-  ExternalLink, Sparkles, Briefcase,
+  ExternalLink, Sparkles, Briefcase, Copy, X, RotateCw,
 } from "lucide-react";
+import ReactMarkdown from "react-markdown";
 
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
@@ -27,8 +28,9 @@ const ECourtsPage = () => {
   const [activeDetailTab, setActiveDetailTab] = useState<
     "orders" | "hearings" | "judgments" | "ias" | null
   >(null);
-  const [orderAi, setOrderAi] = useState<Record<string, any>>({});
-  const [orderAiLoading, setOrderAiLoading] = useState<string | null>(null);
+  const [orderAnalysis, setOrderAnalysis] = useState<
+    Record<string, { text: string; loading: boolean; expanded: boolean; error?: string }>
+  >({});
 
   // Search fields
   const [searchQuery, setSearchQuery] = useState("");
@@ -60,7 +62,7 @@ const ECourtsPage = () => {
     setLoading(true);
     setCaseData(null);
     setActiveDetailTab(null);
-    setOrderAi({});
+    setOrderAnalysis({});
     try {
       const result = await callApi({ action: "case-detail", cnrNumber: trimmed });
       setCaseData(result.data);
