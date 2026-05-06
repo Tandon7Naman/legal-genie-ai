@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -12,6 +13,24 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
+    // Verify JWT
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    const supaUrl = Deno.env.get("SUPABASE_URL")!;
+    const supaAnon = Deno.env.get("SUPABASE_ANON_KEY")!;
+    const { data: { user }, error: _authErr } = await createClient(supaUrl, supaAnon, {
+      global: { headers: { Authorization: authHeader } },
+    }).auth.getUser();
+    if (_authErr || !user) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const ECOURTS_API_KEY = Deno.env.get("ECOURTS_API_KEY");
     if (!ECOURTS_API_KEY) throw new Error("ECOURTS_API_KEY is not configured");
 
@@ -92,19 +111,28 @@ serve(async (req) => {
         if (!cnrNumber || !searchParams?.filename) {
           throw new Error("CNR and filename required");
         }
-        const filename = String(searchParams.filename).replace(/^\/+/, "");
-
-        // The eCourts Partner API exposes order/judgment PDFs under several
-        // possible paths depending on the document type. Try them in order
-        // until one succeeds.
-        const candidates = filename.startsWith("http")
-          ? [filename]
-          : [
-              `${ECOURTS_BASE}/case/${cnrNumber}/order/${filename}`,
-              `${ECOURTS_BASE}/case/${cnrNumber}/judgment/${filename}`,
-              `${ECOURTS_BASE}/case/${cnrNumber}/document/${filename}`,
-              `${ECOURTS_BASE}/case/${cnrNumber}/file/${filename}`,
-            ];
+        const rawFilename = String(searchParams.filename);
+        // Reject absolute URLs to prevent SSRF / API key exfiltration.
+        if (/^https?:\/\//i.test(rawFilename)) {
+          return new Response(
+            JSON.stringify({ error: "Absolute URLs are not allowed" }),
+            { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+          );
+        }
+        // Allow only safe relative filename characters; block path traversal.
+        const filename = rawFilename.replace(/^\/+/, "");
+        if (filename.includes("..") || !/^[A-Za-z0-9._\-\/]+$/.test(filename)) {
+          return new Response(
+            JSON.stringify({ error: "Invalid filename" }),
+            { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+          );
+        }
+        const candidates = [
+          `${ECOURTS_BASE}/case/${cnrNumber}/order/${filename}`,
+          `${ECOURTS_BASE}/case/${cnrNumber}/judgment/${filename}`,
+          `${ECOURTS_BASE}/case/${cnrNumber}/document/${filename}`,
+          `${ECOURTS_BASE}/case/${cnrNumber}/file/${filename}`,
+        ];
 
         let resp: Response | null = null;
         let lastStatus = 404;
