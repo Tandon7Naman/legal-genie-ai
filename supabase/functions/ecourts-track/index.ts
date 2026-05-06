@@ -9,6 +9,18 @@ const corsHeaders = {
 
 const ECOURTS_BASE = "https://webapi.ecourtsindia.com/api/partner";
 
+const CNR_RE = /^[A-Za-z0-9]{16}$/;
+const COURT_PATH_RE = /^[A-Za-z0-9_\-\/]{1,80}$/;
+function badRequest(msg: string) {
+  return new Response(JSON.stringify({ error: msg }), {
+    status: 400,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+}
+function validCnr(v: unknown): v is string {
+  return typeof v === "string" && CNR_RE.test(v);
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -44,7 +56,7 @@ serve(async (req) => {
 
     switch (action) {
       case "case-detail": {
-        if (!cnrNumber) throw new Error("CNR number is required");
+        if (!validCnr(cnrNumber)) return badRequest("Invalid CNR number");
         const resp = await fetch(`${ECOURTS_BASE}/case/${cnrNumber}`, { headers });
         if (!resp.ok) {
           const err = await resp.json().catch(() => ({}));
@@ -77,7 +89,7 @@ serve(async (req) => {
       }
 
       case "refresh": {
-        if (!cnrNumber) throw new Error("CNR number is required");
+        if (!validCnr(cnrNumber)) return badRequest("Invalid CNR number");
         const resp = await fetch(`${ECOURTS_BASE}/case/${cnrNumber}/refresh`, {
           method: "POST",
           headers,
@@ -91,9 +103,13 @@ serve(async (req) => {
       }
 
       case "order-ai": {
-        if (!cnrNumber || !searchParams?.filename) throw new Error("CNR and filename required");
+        if (!validCnr(cnrNumber) || !searchParams?.filename) return badRequest("Invalid CNR or filename");
+        const fnameRaw = String(searchParams.filename);
+        if (fnameRaw.includes("..") || !/^[A-Za-z0-9._\-\/]+$/.test(fnameRaw)) {
+          return badRequest("Invalid filename");
+        }
         const resp = await fetch(
-          `${ECOURTS_BASE}/case/${cnrNumber}/order-ai/${searchParams.filename}`,
+          `${ECOURTS_BASE}/case/${cnrNumber}/order-ai/${fnameRaw}`,
           { headers }
         );
         if (!resp.ok) {
@@ -108,8 +124,8 @@ serve(async (req) => {
         // Streams a PDF from the eCourts API back to the browser using the
         // server-side API key. Used for relative PDF references like
         // "order-1.pdf" returned in judgmentOrders[].orderUrl.
-        if (!cnrNumber || !searchParams?.filename) {
-          throw new Error("CNR and filename required");
+        if (!validCnr(cnrNumber) || !searchParams?.filename) {
+          return badRequest("Invalid CNR or filename");
         }
         const rawFilename = String(searchParams.filename);
         // Reject absolute URLs to prevent SSRF / API key exfiltration.
@@ -185,6 +201,9 @@ serve(async (req) => {
 
       case "court-structure": {
         const path = searchParams?.path || "states";
+        if (typeof path !== "string" || path.includes("..") || !COURT_PATH_RE.test(path)) {
+          return badRequest("Invalid court-structure path");
+        }
         const resp = await fetch(`${ECOURTS_BASE}/causelist/court-structure/${path}`, { headers });
         if (!resp.ok) {
           const err = await resp.json().catch(() => ({}));

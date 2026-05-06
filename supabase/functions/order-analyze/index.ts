@@ -33,6 +33,16 @@ serve(async (req) => {
 
     const { cnrNumber, filename, orderMeta, caseContext } = await req.json();
     if (!cnrNumber || !filename) throw new Error("cnrNumber and filename are required");
+    if (typeof cnrNumber !== "string" || !/^[A-Za-z0-9]{16}$/.test(cnrNumber)) {
+      return new Response(JSON.stringify({ error: "Invalid CNR number" }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    if (typeof filename !== "string" || filename.includes("..") || !/^[A-Za-z0-9._\-\/]+$/.test(filename)) {
+      return new Response(JSON.stringify({ error: "Invalid filename" }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     const ECOURTS_API_KEY = Deno.env.get("ECOURTS_API_KEY");
