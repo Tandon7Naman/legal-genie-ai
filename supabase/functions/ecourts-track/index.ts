@@ -9,8 +9,41 @@ const corsHeaders = {
 
 const ECOURTS_BASE = "https://webapi.ecourtsindia.com/api/partner";
 
-const CNR_RE = /^[A-Za-z0-9]{16}$/;
-const COURT_PATH_RE = /^[A-Za-z0-9_\-\/]{1,80}$/;
+// Real CNRs follow: 2 letters (state), 2 alphanumeric (district), 10 digits (sequence+year)
+const CNR_RE = /^[A-Z]{2}[A-Z0-9]{2}[0-9]{10}$/;
+// Whitelisted court-structure path segments (no traversal, no arbitrary sub-paths)
+const COURT_SEG_RE = /^[A-Za-z0-9_\-]{1,40}$/;
+const ALLOWED_SEARCH_KEYS = new Set([
+  "cnr","caseType","caseNumber","caseYear","filingNumber","filingYear",
+  "partyName","advocateName","stateCode","districtCode","courtComplex",
+  "courtCode","page","pageSize","fromDate","toDate","status",
+]);
+const ALLOWED_CAUSELIST_KEYS = new Set([
+  "stateCode","districtCode","courtComplex","courtCode","date",
+  "causelistType","page","pageSize",
+]);
+function pickAllowed(raw: any, allowed: Set<string>) {
+  const params = new URLSearchParams();
+  if (raw && typeof raw === "object") {
+    for (const [k, v] of Object.entries(raw)) {
+      if (!allowed.has(k)) continue;
+      if (v === undefined || v === null || v === "") continue;
+      if (Array.isArray(v)) {
+        (v as unknown[]).forEach((val) => params.append(k, String(val)));
+      } else {
+        params.set(k, String(v));
+      }
+    }
+  }
+  return params;
+}
+function validCourtPath(path: string): boolean {
+  if (path.includes("..")) return false;
+  const segs = path.split("/").filter(Boolean);
+  if (segs.length < 1 || segs.length > 3) return false;
+  if (segs[0] !== "states") return false;
+  return segs.slice(1).every((s) => COURT_SEG_RE.test(s));
+}
 function badRequest(msg: string) {
   return new Response(JSON.stringify({ error: msg }), {
     status: 400,
@@ -67,18 +100,7 @@ serve(async (req) => {
       }
 
       case "search": {
-        const params = new URLSearchParams();
-        if (searchParams) {
-          for (const [k, v] of Object.entries(searchParams)) {
-            if (v !== undefined && v !== null && v !== "") {
-              if (Array.isArray(v)) {
-                (v as string[]).forEach((val) => params.append(k, val));
-              } else {
-                params.set(k, String(v));
-              }
-            }
-          }
-        }
+        const params = pickAllowed(searchParams, ALLOWED_SEARCH_KEYS);
         const resp = await fetch(`${ECOURTS_BASE}/search?${params}`, { headers });
         if (!resp.ok) {
           const err = await resp.json().catch(() => ({}));
@@ -184,12 +206,7 @@ serve(async (req) => {
       }
 
       case "causelist-search": {
-        const params = new URLSearchParams();
-        if (searchParams) {
-          for (const [k, v] of Object.entries(searchParams)) {
-            if (v !== undefined && v !== null && v !== "") params.set(k, String(v));
-          }
-        }
+        const params = pickAllowed(searchParams, ALLOWED_CAUSELIST_KEYS);
         const resp = await fetch(`${ECOURTS_BASE}/causelist/search?${params}`, { headers });
         if (!resp.ok) {
           const err = await resp.json().catch(() => ({}));
@@ -201,7 +218,7 @@ serve(async (req) => {
 
       case "court-structure": {
         const path = searchParams?.path || "states";
-        if (typeof path !== "string" || path.includes("..") || !COURT_PATH_RE.test(path)) {
+        if (typeof path !== "string" || !validCourtPath(path)) {
           return badRequest("Invalid court-structure path");
         }
         const resp = await fetch(`${ECOURTS_BASE}/causelist/court-structure/${path}`, { headers });
