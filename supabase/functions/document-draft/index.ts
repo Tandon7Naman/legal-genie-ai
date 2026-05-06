@@ -48,7 +48,7 @@ serve(async (req) => {
       });
     }
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
+    if (!LOVABLE_API_KEY) { console.error("LOVABLE_API_KEY is not configured"); throw new Error("Service temporarily unavailable"); }
 
     const systemPrompt = `You are an expert Indian legal document drafter. Generate professional, court-ready legal documents following Indian legal standards and formatting conventions.
 
@@ -115,7 +115,7 @@ Generate the complete document with placeholders like [PARTY_NAME], [DATE], [ADD
     });
   } catch (e) {
     console.error("document-draft error:", e);
-    return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }), {
+    return new Response(JSON.stringify({ error: "Internal server error" }), {
       status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }

@@ -118,7 +118,7 @@ serve(async (req) => {
       });
     }
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
+    if (!LOVABLE_API_KEY) { console.error("LOVABLE_API_KEY is not configured"); throw new Error("Service temporarily unavailable"); }
 
     const promptFn = TOOL_PROMPTS[tool];
     if (!promptFn) throw new Error(`Unknown tool: ${tool}`);
@@ -164,7 +164,7 @@ serve(async (req) => {
     });
   } catch (e) {
     console.error("student-tools error:", e);
-    return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }), {
+    return new Response(JSON.stringify({ error: "Internal server error" }), {
       status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }

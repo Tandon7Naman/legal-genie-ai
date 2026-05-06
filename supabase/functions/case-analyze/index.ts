@@ -36,7 +36,7 @@ serve(async (req) => {
       });
     }
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
+    if (!LOVABLE_API_KEY) { console.error("LOVABLE_API_KEY is not configured"); throw new Error("Service temporarily unavailable"); }
 
     const systemPrompt = `You are a senior Indian litigation strategist with decades of experience. Analyze the provided case details thoroughly.
 
@@ -90,7 +90,7 @@ Be specific, cite real Indian legal provisions, and provide actionable advice.`;
     });
   } catch (e) {
     console.error("case-analyze error:", e);
-    return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }), {
+    return new Response(JSON.stringify({ error: "Internal server error" }), {
       status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
