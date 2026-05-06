@@ -43,6 +43,19 @@ serve(async (req) => {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
+    try {
+      const metaStr = JSON.stringify(orderMeta ?? {});
+      const ctxStr = JSON.stringify(caseContext ?? {});
+      if (metaStr.length > 20_000 || ctxStr.length > 20_000) {
+        return new Response(JSON.stringify({ error: "orderMeta/caseContext too large (max 20KB each)" }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    } catch {
+      return new Response(JSON.stringify({ error: "Invalid orderMeta or caseContext" }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     const ECOURTS_API_KEY = Deno.env.get("ECOURTS_API_KEY");
