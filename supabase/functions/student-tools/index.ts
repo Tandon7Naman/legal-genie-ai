@@ -103,6 +103,20 @@ serve(async (req) => {
 
     const body = await req.json();
     const { tool } = body;
+    const checkStr = (v: unknown, max: number) =>
+      v === undefined || v === null || (typeof v === "string" && v.length <= max);
+    if (
+      !checkStr(body.topic, 2_000) ||
+      !checkStr(body.arguments, 50_000) ||
+      !checkStr(body.statuteText, 50_000) ||
+      !checkStr(body.caseText, 100_000) ||
+      !checkStr(body.side, 100) ||
+      !checkStr(body.level, 50)
+    ) {
+      return new Response(JSON.stringify({ error: "Input field too large or invalid type" }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
