@@ -30,6 +30,18 @@ serve(async (req) => {
     }
 
     const { query, filters } = await req.json();
+    if (typeof query !== "string" || query.length === 0 || query.length > 10_000) {
+      return new Response(JSON.stringify({ error: "query must be a string up to 10000 chars" }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    if (filters !== undefined && filters !== null) {
+      if (typeof filters !== "object" || JSON.stringify(filters).length > 5_000) {
+        return new Response(JSON.stringify({ error: "Invalid filters" }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 

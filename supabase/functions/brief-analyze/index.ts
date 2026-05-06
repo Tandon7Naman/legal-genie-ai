@@ -31,6 +31,16 @@ serve(async (req) => {
 
     const { briefText, documentType } = await req.json();
     if (!briefText) throw new Error("Brief text is required");
+    if (typeof briefText !== "string" || briefText.length > 100_000) {
+      return new Response(JSON.stringify({ error: "briefText too large (max 100000 chars)" }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    if (documentType !== undefined && (typeof documentType !== "string" || documentType.length > 200)) {
+      return new Response(JSON.stringify({ error: "Invalid documentType" }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");

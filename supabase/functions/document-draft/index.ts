@@ -30,6 +30,23 @@ serve(async (req) => {
     }
 
     const { documentType, parameters } = await req.json();
+    if (typeof documentType !== "string" || documentType.length === 0 || documentType.length > 200) {
+      return new Response(JSON.stringify({ error: "Invalid documentType" }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+    try {
+      const paramsStr = JSON.stringify(parameters ?? {});
+      if (paramsStr.length > 20_000) {
+        return new Response(JSON.stringify({ error: "parameters too large (max 20KB)" }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    } catch {
+      return new Response(JSON.stringify({ error: "Invalid parameters" }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 

@@ -30,6 +30,11 @@ serve(async (req) => {
     }
 
     const { caseDetails } = await req.json();
+    if (typeof caseDetails !== "string" || caseDetails.length === 0 || caseDetails.length > 100_000) {
+      return new Response(JSON.stringify({ error: "caseDetails must be a string up to 100000 chars" }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
 
