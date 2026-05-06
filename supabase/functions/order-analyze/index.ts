@@ -59,8 +59,8 @@ serve(async (req) => {
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     const ECOURTS_API_KEY = Deno.env.get("ECOURTS_API_KEY");
-    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
-    if (!ECOURTS_API_KEY) throw new Error("ECOURTS_API_KEY is not configured");
+    if (!LOVABLE_API_KEY) { console.error("LOVABLE_API_KEY is not configured"); throw new Error("Service temporarily unavailable"); }
+    if (!ECOURTS_API_KEY) { console.error("ECOURTS_API_KEY is not configured"); throw new Error("Service temporarily unavailable"); }
 
     // 1) Try to pull the eCourts order-ai content (server-side)
     let ecourtsContent: any = null;
@@ -179,7 +179,7 @@ Produce the full structured brief now.`;
   } catch (e) {
     console.error("order-analyze error:", e);
     return new Response(
-      JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }),
+      JSON.stringify({ error: "Internal server error" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   }
