@@ -111,19 +111,28 @@ serve(async (req) => {
         if (!cnrNumber || !searchParams?.filename) {
           throw new Error("CNR and filename required");
         }
-        const filename = String(searchParams.filename).replace(/^\/+/, "");
-
-        // The eCourts Partner API exposes order/judgment PDFs under several
-        // possible paths depending on the document type. Try them in order
-        // until one succeeds.
-        const candidates = filename.startsWith("http")
-          ? [filename]
-          : [
-              `${ECOURTS_BASE}/case/${cnrNumber}/order/${filename}`,
-              `${ECOURTS_BASE}/case/${cnrNumber}/judgment/${filename}`,
-              `${ECOURTS_BASE}/case/${cnrNumber}/document/${filename}`,
-              `${ECOURTS_BASE}/case/${cnrNumber}/file/${filename}`,
-            ];
+        const rawFilename = String(searchParams.filename);
+        // Reject absolute URLs to prevent SSRF / API key exfiltration.
+        if (/^https?:\/\//i.test(rawFilename)) {
+          return new Response(
+            JSON.stringify({ error: "Absolute URLs are not allowed" }),
+            { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+          );
+        }
+        // Allow only safe relative filename characters; block path traversal.
+        const filename = rawFilename.replace(/^\/+/, "");
+        if (filename.includes("..") || !/^[A-Za-z0-9._\-\/]+$/.test(filename)) {
+          return new Response(
+            JSON.stringify({ error: "Invalid filename" }),
+            { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+          );
+        }
+        const candidates = [
+          `${ECOURTS_BASE}/case/${cnrNumber}/order/${filename}`,
+          `${ECOURTS_BASE}/case/${cnrNumber}/judgment/${filename}`,
+          `${ECOURTS_BASE}/case/${cnrNumber}/document/${filename}`,
+          `${ECOURTS_BASE}/case/${cnrNumber}/file/${filename}`,
+        ];
 
         let resp: Response | null = null;
         let lastStatus = 404;
