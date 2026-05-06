@@ -77,7 +77,12 @@ serve(async (req) => {
     }
 
     const ECOURTS_API_KEY = Deno.env.get("ECOURTS_API_KEY");
-    if (!ECOURTS_API_KEY) throw new Error("ECOURTS_API_KEY is not configured");
+    if (!ECOURTS_API_KEY) {
+      console.error("ECOURTS_API_KEY is not configured");
+      return new Response(JSON.stringify({ error: "Service temporarily unavailable" }), {
+        status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     const { action, cnrNumber, searchParams } = await req.json();
     const headers = {
@@ -93,7 +98,8 @@ serve(async (req) => {
         const resp = await fetch(`${ECOURTS_BASE}/case/${cnrNumber}`, { headers });
         if (!resp.ok) {
           const err = await resp.json().catch(() => ({}));
-          throw new Error(err.error?.message || `eCourts API error ${resp.status}`);
+          console.error("eCourts API error", resp.status, err);
+          throw new Error("Upstream service error");
         }
         result = await resp.json();
         break;
@@ -104,7 +110,8 @@ serve(async (req) => {
         const resp = await fetch(`${ECOURTS_BASE}/search?${params}`, { headers });
         if (!resp.ok) {
           const err = await resp.json().catch(() => ({}));
-          throw new Error(err.error?.message || `Search error ${resp.status}`);
+          console.error("eCourts search error", resp.status, err);
+          throw new Error("Upstream service error");
         }
         result = await resp.json();
         break;
@@ -118,7 +125,8 @@ serve(async (req) => {
         });
         if (!resp.ok) {
           const err = await resp.json().catch(() => ({}));
-          throw new Error(err.error?.message || `Refresh error ${resp.status}`);
+          console.error("eCourts refresh error", resp.status, err);
+          throw new Error("Upstream service error");
         }
         result = await resp.json();
         break;
@@ -136,7 +144,8 @@ serve(async (req) => {
         );
         if (!resp.ok) {
           const err = await resp.json().catch(() => ({}));
-          throw new Error(err.error?.message || `Order AI error ${resp.status}`);
+          console.error("eCourts order-ai error", resp.status, err);
+          throw new Error("Upstream service error");
         }
         result = await resp.json();
         break;
@@ -186,7 +195,7 @@ serve(async (req) => {
         if (!resp) {
           return new Response(
             JSON.stringify({
-              error: `Document not available from eCourts (status ${lastStatus}). ${lastBody.slice(0, 160)}`,
+              error: "Document not found on eCourts.",
               fallback: true,
             }),
             { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
@@ -210,7 +219,8 @@ serve(async (req) => {
         const resp = await fetch(`${ECOURTS_BASE}/causelist/search?${params}`, { headers });
         if (!resp.ok) {
           const err = await resp.json().catch(() => ({}));
-          throw new Error(err.error?.message || `Cause list error ${resp.status}`);
+          console.error("eCourts cause list error", resp.status, err);
+          throw new Error("Upstream service error");
         }
         result = await resp.json();
         break;
@@ -224,14 +234,15 @@ serve(async (req) => {
         const resp = await fetch(`${ECOURTS_BASE}/causelist/court-structure/${path}`, { headers });
         if (!resp.ok) {
           const err = await resp.json().catch(() => ({}));
-          throw new Error(err.error?.message || `Court structure error ${resp.status}`);
+          console.error("eCourts court structure error", resp.status, err);
+          throw new Error("Upstream service error");
         }
         result = await resp.json();
         break;
       }
 
       default:
-        throw new Error(`Unknown action: ${action}`);
+        return badRequest("Unknown action");
     }
 
     return new Response(JSON.stringify(result), {
@@ -240,7 +251,7 @@ serve(async (req) => {
   } catch (e) {
     console.error("ecourts-track error:", e);
     return new Response(
-      JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }),
+      JSON.stringify({ error: "Internal server error" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
