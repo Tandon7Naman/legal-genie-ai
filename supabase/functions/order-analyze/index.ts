@@ -33,7 +33,7 @@ serve(async (req) => {
 
     const { cnrNumber, filename, orderMeta, caseContext } = await req.json();
     if (!cnrNumber || !filename) throw new Error("cnrNumber and filename are required");
-    if (typeof cnrNumber !== "string" || !/^[A-Za-z0-9]{16}$/.test(cnrNumber)) {
+    if (typeof cnrNumber !== "string" || !/^[A-Z]{2}[A-Z0-9]{2}[0-9]{10}$/.test(cnrNumber)) {
       return new Response(JSON.stringify({ error: "Invalid CNR number" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
