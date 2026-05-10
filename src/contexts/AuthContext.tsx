@@ -22,8 +22,10 @@ interface AuthContextType {
   profile: Profile | null;
   roles: UserRole[];
   isAdmin: boolean;
+  needsRoleSelection: boolean;
   loading: boolean;
   signOut: () => Promise<void>;
+  refreshUserData: () => Promise<void>;
 }
 
 export type { UserRole };
@@ -34,8 +36,10 @@ const AuthContext = createContext<AuthContextType>({
   profile: null,
   roles: [],
   isAdmin: false,
+  needsRoleSelection: false,
   loading: true,
   signOut: async () => {},
+  refreshUserData: async () => {},
 });
 
 export const useAuth = () => useContext(AuthContext);
@@ -46,6 +50,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [roles, setRoles] = useState<UserRole[]>([]);
   const [loading, setLoading] = useState(true);
+  const [rolesLoaded, setRolesLoaded] = useState(false);
 
   const fetchUserData = async (userId: string) => {
     const [profileRes, rolesRes] = await Promise.all([
@@ -54,6 +59,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     ]);
     if (profileRes.data) setProfile(profileRes.data as Profile);
     if (rolesRes.data) setRoles(rolesRes.data.map((r: any) => r.role as UserRole));
+    setRolesLoaded(true);
   };
 
   useEffect(() => {
@@ -66,6 +72,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         } else {
           setProfile(null);
           setRoles([]);
+          setRolesLoaded(false);
         }
         setLoading(false);
       }
@@ -85,6 +92,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     await supabase.auth.signOut();
     setProfile(null);
     setRoles([]);
+    setRolesLoaded(false);
+  };
+
+  const refreshUserData = async () => {
+    if (user) await fetchUserData(user.id);
   };
 
   return (
@@ -95,8 +107,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         profile,
         roles,
         isAdmin: roles.includes("admin"),
+        needsRoleSelection: !!user && rolesLoaded && roles.length === 0,
         loading,
         signOut,
+        refreshUserData,
       }}
     >
       {children}
