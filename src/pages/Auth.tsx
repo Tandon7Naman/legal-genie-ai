@@ -149,10 +149,10 @@ const Auth = () => {
                 <div>
                   <Label className="text-primary-foreground/80 text-xs">Account Type</Label>
                   <Select value={role} onValueChange={setRole}>
-                    <SelectTrigger className="bg-background/10 border-border/30 text-primary-foreground">
+                    <SelectTrigger className="bg-background border-border text-foreground">
                       <SelectValue />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="bg-popover text-popover-foreground z-50">
                       <SelectItem value="student">Student</SelectItem>
                       <SelectItem value="individual_lawyer">Individual Lawyer</SelectItem>
                       <SelectItem value="law_firm">Law Firm</SelectItem>
@@ -167,6 +167,7 @@ const Auth = () => {
                       <Input
                         value={institution}
                         onChange={(e) => setInstitution(e.target.value)}
+                        required
                         className="bg-background/10 border-border/30 text-primary-foreground"
                       />
                     </div>
@@ -176,6 +177,7 @@ const Auth = () => {
                         type="number"
                         value={gradYear}
                         onChange={(e) => setGradYear(e.target.value)}
+                        required
                         className="bg-background/10 border-border/30 text-primary-foreground"
                       />
                     </div>
@@ -187,6 +189,7 @@ const Auth = () => {
                     <Input
                       value={firmName}
                       onChange={(e) => setFirmName(e.target.value)}
+                      required
                       className="bg-background/10 border-border/30 text-primary-foreground"
                     />
                   </div>

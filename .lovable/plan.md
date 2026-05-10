@@ -1,66 +1,53 @@
+## Problem
+
+New users currently can't reliably choose their account type (Student / Individual Lawyer / Law Firm / Organization):
+
+1. **Email signup** — the dropdown exists but uses a dark glass background where the `SelectContent` popover and items can render with low contrast, and the role-conditional fields (Institution, Graduation Year, Firm Name) aren't required, so role data often ends up incomplete.
+2. **Google sign-in** — the OAuth flow skips the signup form entirely. The `handle_new_user` trigger then defaults every Google user to `individual_lawyer` with no chance to pick another role.
+
 ## Goal
 
-Upgrade the Orders tab "AI Summary" from a one-line jist into a full research-grade analysis panel with structured sections, streaming output, and copy/expand actions — suitable for a litigator preparing arguments.
+Every new user — email or Google — must explicitly choose a role before reaching the dashboard, and the role + role-specific profile fields must be saved.
 
-## What changes for the user
+## Changes
 
-When the user clicks **AI Summary** on an order in the Orders tab:
+### 1. Email signup form (`src/pages/Auth.tsx`)
+- Make the Account Type `Select` more visible: lift it out of the translucent card styling, give the trigger a solid background, and ensure `SelectContent` uses `bg-popover text-popover-foreground` so options are readable.
+- Make role-specific fields **required** when their role is selected (Institution + Graduation Year for Student; Firm/Org Name for Law Firm / Organization).
+- Keep current behavior of passing `role` and the extra fields in `signUp` metadata so the existing `handle_new_user` trigger picks them up.
 
-- Instead of a tiny grey paragraph, a rich expandable analysis card opens under the order with these sections rendered as Markdown:
-  - Order at a Glance (date, court, judge, type)
-  - Procedural Posture & Background
-  - Issues Considered by the Court
-  - Court's Reasoning (paragraph-by-paragraph)
-  - Final Directions / Operative Order
-  - Statutes & Provisions Relied Upon (with section numbers)
-  - Precedents Cited (with full citations)
-  - Implications for the Case (next steps, appeal/review angles)
-  - Research Leads (related judgments, doctrines, follow-up questions)
-- Output streams token-by-token so the user sees progress immediately.
-- Buttons: **Copy**, **Re-generate**, **Collapse**.
-- Loading state shows the section skeleton instead of just a spinner.
+### 2. Post-OAuth role selection step
+After Google sign-in, detect users that don't yet have a role row and force them through a one-time "Complete your profile" screen before the dashboard.
 
-## Technical plan
+- **New page**: `src/pages/CompleteProfile.tsx` at route `/complete-profile`
+  - Same role picker (Student / Individual Lawyer / Law Firm / Organization) and conditional fields used in signup.
+  - On submit:
+    - `INSERT INTO user_roles (user_id, role)` for the chosen role.
+    - `UPDATE profiles` with institution / expected_graduation_year / firm_name as applicable, plus `full_name` if missing (prefill from Google metadata).
+  - Redirect to `/dashboard` on success.
+- **Routing** (`src/App.tsx`): add the protected route `/complete-profile`.
+- **Gatekeeper** (`src/components/ProtectedRoute.tsx` or `AuthContext`): if the authenticated user has zero rows in `user_roles`, redirect any protected route to `/complete-profile` (except `/complete-profile` itself). The existing `roles` array in `AuthContext` already exposes this — add a `needsRoleSelection` flag (`!loading && user && roles.length === 0`).
+- The `handle_new_user` trigger currently always inserts `individual_lawyer`. To support the post-OAuth picker we need the trigger to **skip role insertion when no role is provided in `raw_user_meta_data`**. This requires a small DB migration:
 
-### 1. New edge function: `order-analyze`
+  ```sql
+  -- In handle_new_user(): only insert into user_roles when raw_user_meta_data->>'role' IS NOT NULL
+  ```
 
-Create `supabase/functions/order-analyze/index.ts` that:
+  Email signup keeps sending `role`, so its behavior is unchanged. Google OAuth has no `role` metadata, so those users land on `/complete-profile`.
 
-- Accepts `{ cnrNumber, filename, orderMeta }` where `orderMeta` is the raw order record from the eCourts response (date, judge, type, etc.).
-- Calls the existing `ecourts-track` `order-ai` action **internally** (server-side fetch to the eCourts partner API) to pull whatever order text/summary the eCourts side exposes. Wrap in try/catch — if it fails, proceed with `orderMeta` only.
-- Sends a long, structured system prompt to **Lovable AI Gateway** (`google/gemini-2.5-pro` for depth) asking for the 9 sections above, with explicit instructions to:
-  - Cite real Indian statutes with section numbers
-  - Cite real Supreme Court / High Court judgments with full citation format
-  - Be honest when information is missing rather than hallucinating
-  - Use Markdown headings (`##`) per section
-- Streams the SSE response back to the browser (same pattern as `brief-analyze` / `case-analyze`).
-- Handles 429 / 402 with friendly errors.
+### 3. Backfill safety
+Existing Google users already auto-assigned `individual_lawyer` are unaffected (they have a role row, so they bypass `/complete-profile`). No data migration needed.
 
-### 2. Frontend: replace the inline summary block in `src/pages/ECourts.tsx`
+## Files touched
 
-- Remove the current `handleOrderAi` (which calls `order-ai` and stores a tiny string).
-- Replace `orderAi` state with `orderAnalysis: Record<string, { text: string; loading: boolean; expanded: boolean }>`.
-- New `streamOrderAnalysis(order)` function that:
-  - POSTs to `/functions/v1/order-analyze` with the order metadata.
-  - Reads the SSE stream line-by-line (same parser used in `BriefAnalyzer.tsx`).
-  - Appends tokens into `orderAnalysis[key].text` as they arrive.
-- New `<OrderAnalysisCard />` inline component rendering the streaming markdown via `react-markdown` (already used elsewhere) inside a `max-h-[480px] overflow-y-auto` panel with a header bar containing **Copy**, **Re-generate**, **Collapse** buttons.
-- Keep the existing **View PDF** button untouched.
-
-### 3. UX polish
-
-- While streaming, show 3 skeleton lines + a small "Analyzing order…" label with the spinner.
-- Once streaming completes, show a small footer: "Generated by AI — verify citations before relying on them." (compliance with the existing AI disclaimer pattern).
-- The card is collapsible so the orders list stays scannable; the analysis is cached per filename so collapsing/re-expanding doesn't re-fetch.
-
-## Files to change
-
-- **New**: `supabase/functions/order-analyze/index.ts` — streaming AI analysis function.
-- **Edit**: `src/pages/ECourts.tsx` — replace small AI summary block with the new streaming, multi-section analysis card; add `react-markdown` rendering.
-
-No database migrations, no new secrets (uses existing `LOVABLE_API_KEY` and `ECOURTS_API_KEY`).
+- `src/pages/Auth.tsx` — visibility + required fields on signup role selector
+- `src/pages/CompleteProfile.tsx` — new page (role picker for OAuth users)
+- `src/App.tsx` — add `/complete-profile` route
+- `src/contexts/AuthContext.tsx` — expose `needsRoleSelection`
+- `src/components/ProtectedRoute.tsx` — redirect to `/complete-profile` when role missing
+- DB migration — update `handle_new_user` to skip role insert when metadata has no `role`
 
 ## Out of scope
 
-- PDF text extraction from the actual order PDF (eCourts partner API does not expose OCR text reliably; we rely on whatever `order-ai` returns plus structured metadata). Can be added later if the user wants deeper extraction.
-- Persisting analyses to the database — kept in component state for now. Easy to add if requested.
+- Login form (no role needed at login, by design).
+- Changing existing users' roles (handled in Settings / Admin already).

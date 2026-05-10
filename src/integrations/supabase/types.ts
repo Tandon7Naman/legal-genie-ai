@@ -813,6 +813,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      set_initial_role: {
+        Args: { _role: Database["public"]["Enums"]["app_role"] }
+        Returns: undefined
+      }
     }
     Enums: {
       app_role:

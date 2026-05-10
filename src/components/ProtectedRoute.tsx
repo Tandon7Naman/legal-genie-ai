@@ -1,8 +1,9 @@
-import { Navigate } from "react-router-dom";
+import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 
 export const ProtectedRoute = ({ children, requireAdmin = false }: { children: React.ReactNode; requireAdmin?: boolean }) => {
-  const { user, isAdmin, loading } = useAuth();
+  const { user, isAdmin, loading, needsRoleSelection } = useAuth();
+  const location = useLocation();
 
   if (loading) {
     return (
@@ -13,6 +14,9 @@ export const ProtectedRoute = ({ children, requireAdmin = false }: { children: R
   }
 
   if (!user) return <Navigate to="/auth" replace />;
+  if (needsRoleSelection && location.pathname !== "/complete-profile") {
+    return <Navigate to="/complete-profile" replace />;
+  }
   if (requireAdmin && !isAdmin) return <Navigate to="/dashboard" replace />;
 
   return <>{children}</>;
