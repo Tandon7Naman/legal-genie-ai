@@ -56,9 +56,7 @@ const CompleteProfile = () => {
         if (profileErr) throw profileErr;
       }
 
-      const { error: roleErr } = await supabase
-        .from("user_roles")
-        .insert({ user_id: user.id, role });
+      const { error: roleErr } = await supabase.rpc("set_initial_role", { _role: role });
       if (roleErr) throw roleErr;
 
       await refreshUserData();
