@@ -4,6 +4,8 @@ import { GlobalSearch } from "@/components/GlobalSearch";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
+import { ClearSampleDataButton } from "@/components/onboarding/ClearSampleDataButton";
+import { OnboardingTour } from "@/components/onboarding/OnboardingTour";
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const navigate = useNavigate();
@@ -37,6 +39,8 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
             {children}
           </main>
         </div>
+        <ClearSampleDataButton />
+        <OnboardingTour />
       </div>
     </SidebarProvider>
   );
