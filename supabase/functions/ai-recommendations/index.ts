@@ -22,15 +22,14 @@ serve(async (req) => {
 
     const supabase = createClient(SUPABASE_URL!, SUPABASE_SERVICE_ROLE_KEY!);
 
-    // Decode JWT to get user_id
     const token = authHeader.replace("Bearer ", "");
-    const { data: { user }, error: authError } = await createClient(
-      SUPABASE_URL!,
-      Deno.env.get("SUPABASE_ANON_KEY")!,
-      { global: { headers: { Authorization: `Bearer ${token}` } } }
-    ).auth.getUser();
-
-    if (authError || !user) throw new Error("Unauthorized");
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    if (authError || !user) {
+      console.error("Auth error:", authError);
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     // Fetch user's data for context
     const [searchRes, casesRes, rolesRes] = await Promise.all([
