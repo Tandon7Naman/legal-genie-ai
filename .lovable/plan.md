@@ -1,53 +1,77 @@
-## Problem
-
-New users currently can't reliably choose their account type (Student / Individual Lawyer / Law Firm / Organization):
-
-1. **Email signup** — the dropdown exists but uses a dark glass background where the `SelectContent` popover and items can render with low contrast, and the role-conditional fields (Institution, Graduation Year, Firm Name) aren't required, so role data often ends up incomplete.
-2. **Google sign-in** — the OAuth flow skips the signup form entirely. The `handle_new_user` trigger then defaults every Google user to `individual_lawyer` with no chance to pick another role.
-
 ## Goal
 
-Every new user — email or Google — must explicitly choose a role before reaching the dashboard, and the role + role-specific profile fields must be saved.
+When a user logs in for the first time, give them a guided tour and pre-populated sample data so the app feels alive. Provide a single "Clear sample data" button (top-right) that wipes the sample data, hides itself forever, and never re-seeds.
 
-## Changes
+## User Flow
 
-### 1. Email signup form (`src/pages/Auth.tsx`)
-- Make the Account Type `Select` more visible: lift it out of the translucent card styling, give the trigger a solid background, and ensure `SelectContent` uses `bg-popover text-popover-foreground` so options are readable.
-- Make role-specific fields **required** when their role is selected (Institution + Graduation Year for Student; Firm/Org Name for Law Firm / Organization).
-- Keep current behavior of passing `role` and the extra fields in `signUp` metadata so the existing `handle_new_user` trigger picks them up.
+1. New user signs up → completes profile → lands on `/dashboard`.
+2. App detects "first login" (no sample seeded yet, no real data) → automatically seeds sample data tagged as sample, and launches a quick guided tour.
+3. Tour: 5–6 step overlay highlighting Dashboard widgets, Cases, Clients, Drafting, Research, and the Clear Sample Data button. User can skip or finish.
+4. A floating "Clear Sample Data" pill button appears top-right on every page while sample data is present.
+5. Clicking it shows a confirmation alert dialog. On confirm, all sample-tagged rows are deleted, the flag is flipped, and the button disappears for good — no future re-seeding even if the user deletes everything else.
 
-### 2. Post-OAuth role selection step
-After Google sign-in, detect users that don't yet have a role row and force them through a one-time "Complete your profile" screen before the dashboard.
+## Sample Data Seeded
 
-- **New page**: `src/pages/CompleteProfile.tsx` at route `/complete-profile`
-  - Same role picker (Student / Individual Lawyer / Law Firm / Organization) and conditional fields used in signup.
-  - On submit:
-    - `INSERT INTO user_roles (user_id, role)` for the chosen role.
-    - `UPDATE profiles` with institution / expected_graduation_year / firm_name as applicable, plus `full_name` if missing (prefill from Google metadata).
-  - Redirect to `/dashboard` on success.
-- **Routing** (`src/App.tsx`): add the protected route `/complete-profile`.
-- **Gatekeeper** (`src/components/ProtectedRoute.tsx` or `AuthContext`): if the authenticated user has zero rows in `user_roles`, redirect any protected route to `/complete-profile` (except `/complete-profile` itself). The existing `roles` array in `AuthContext` already exposes this — add a `needsRoleSelection` flag (`!loading && user && roles.length === 0`).
-- The `handle_new_user` trigger currently always inserts `individual_lawyer`. To support the post-OAuth picker we need the trigger to **skip role insertion when no role is provided in `raw_user_meta_data`**. This requires a small DB migration:
+Lightweight, realistic Indian legal context, all marked `is_sample = true`:
+- 3 clients (e.g. "Sharma Industries Pvt Ltd", "Rajesh Kumar", "Mehta & Co.")
+- 3 cases (civil, criminal, corporate) linked to those clients with hearing dates
+- 4 tasks (2 due soon, 2 later) linked to cases
+- 2 calendar events (next hearing, client meeting)
+- 2 saved drafts (a notice and a contract)
+- 1 invoice + 1 billable hours entry
+- 2 search history entries
 
-  ```sql
-  -- In handle_new_user(): only insert into user_roles when raw_user_meta_data->>'role' IS NOT NULL
-  ```
+## Schema Changes
 
-  Email signup keeps sending `role`, so its behavior is unchanged. Google OAuth has no `role` metadata, so those users land on `/complete-profile`.
+Add `is_sample boolean NOT NULL DEFAULT false` column to: `clients`, `cases`, `tasks`, `calendar_events`, `saved_drafts`, `invoices`, `billable_hours`, `search_history`, `hearings`, `case_notes`, `communication_log`.
 
-### 3. Backfill safety
-Existing Google users already auto-assigned `individual_lawyer` are unaffected (they have a role row, so they bypass `/complete-profile`). No data migration needed.
+Add to `profiles`:
+- `onboarding_completed boolean NOT NULL DEFAULT false`
+- `sample_data_seeded boolean NOT NULL DEFAULT false`
+- `sample_data_cleared boolean NOT NULL DEFAULT false`
 
-## Files touched
+The combination ensures: seed only when `sample_data_seeded = false AND sample_data_cleared = false`. Once cleared, never seed again.
 
-- `src/pages/Auth.tsx` — visibility + required fields on signup role selector
-- `src/pages/CompleteProfile.tsx` — new page (role picker for OAuth users)
-- `src/App.tsx` — add `/complete-profile` route
-- `src/contexts/AuthContext.tsx` — expose `needsRoleSelection`
-- `src/components/ProtectedRoute.tsx` — redirect to `/complete-profile` when role missing
-- DB migration — update `handle_new_user` to skip role insert when metadata has no `role`
+## Backend
 
-## Out of scope
+Two new edge functions (JWT-validated):
+- `seed-sample-data` — inserts the sample rows for `auth.uid()`, sets `sample_data_seeded = true`. Idempotent: no-op if already seeded or cleared.
+- `clear-sample-data` — deletes all rows where `user_id = auth.uid() AND is_sample = true` across the tagged tables, sets `sample_data_cleared = true`.
 
-- Login form (no role needed at login, by design).
-- Changing existing users' roles (handled in Settings / Admin already).
+## Frontend
+
+New components:
+- `src/components/onboarding/OnboardingTour.tsx` — lightweight step-based overlay (no heavy lib; custom tooltip + spotlight using `position: fixed` and refs / data-attributes like `data-tour="dashboard-stats"`).
+- `src/components/onboarding/ClearSampleDataButton.tsx` — fixed top-right pill button with AlertDialog confirmation. Reads `profiles.sample_data_seeded && !sample_data_cleared`.
+- `src/hooks/useOnboarding.ts` — fetches profile flags, exposes `shouldSeed`, `shouldShowTour`, `hasSampleData`, and trigger helpers.
+
+Wiring:
+- In `AppLayout.tsx`: mount `ClearSampleDataButton` and `OnboardingTour`. On first load after login, if `shouldSeed`, invoke `seed-sample-data`, then mark `onboarding_completed = false` so the tour starts.
+- Tour anchors via `data-tour="..."` attributes added to existing nav items and dashboard widgets — no visual change to those components.
+
+## Edge Cases
+
+- User signs up, never sees tour (closes tab) → next login still triggers because `onboarding_completed = false`.
+- Sample data filtered out of analytics/win-rate etc.? Not needed; sample rows look like normal user data and counts of "active cases" will simply include them until cleared.
+- User manually deletes a sample case via Cases page → fine; remaining sample rows still there, button still visible until they click Clear.
+- After Clear: button gone, tour never reshows (`onboarding_completed = true` set when tour ends OR when Clear is pressed).
+
+## Files
+
+New:
+- `supabase/migrations/<ts>_sample_data_columns.sql`
+- `supabase/functions/seed-sample-data/index.ts`
+- `supabase/functions/clear-sample-data/index.ts`
+- `src/components/onboarding/OnboardingTour.tsx`
+- `src/components/onboarding/ClearSampleDataButton.tsx`
+- `src/hooks/useOnboarding.ts`
+
+Edited:
+- `src/components/AppLayout.tsx` — mount onboarding pieces
+- `src/pages/Dashboard.tsx`, `src/components/AppSidebar.tsx` — add `data-tour` anchors
+- `supabase/config.toml` — register two new functions
+
+## Out of Scope
+
+- No re-seed option once cleared (per requirement).
+- No admin-side toggle for sample data.

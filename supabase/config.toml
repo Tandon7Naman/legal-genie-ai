@@ -20,3 +20,9 @@ verify_jwt = false
 
 [functions.brief-analyze]
 verify_jwt = false
+
+[functions.seed-sample-data]
+verify_jwt = false
+
+[functions.clear-sample-data]
+verify_jwt = false
