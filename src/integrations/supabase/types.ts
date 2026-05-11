@@ -59,6 +59,7 @@ export type Database = {
           description: string | null
           hours: number
           id: string
+          is_sample: boolean
           rate: number
           user_id: string
         }
@@ -70,6 +71,7 @@ export type Database = {
           description?: string | null
           hours?: number
           id?: string
+          is_sample?: boolean
           rate?: number
           user_id: string
         }
@@ -81,6 +83,7 @@ export type Database = {
           description?: string | null
           hours?: number
           id?: string
+          is_sample?: boolean
           rate?: number
           user_id?: string
         }
@@ -109,6 +112,7 @@ export type Database = {
           description: string | null
           end_date: string | null
           id: string
+          is_sample: boolean
           location: string | null
           title: string
           type: string
@@ -122,6 +126,7 @@ export type Database = {
           description?: string | null
           end_date?: string | null
           id?: string
+          is_sample?: boolean
           location?: string | null
           title: string
           type?: string
@@ -135,6 +140,7 @@ export type Database = {
           description?: string | null
           end_date?: string | null
           id?: string
+          is_sample?: boolean
           location?: string | null
           title?: string
           type?: string
@@ -157,6 +163,7 @@ export type Database = {
           content: string
           created_at: string
           id: string
+          is_sample: boolean
           user_id: string
         }
         Insert: {
@@ -164,6 +171,7 @@ export type Database = {
           content: string
           created_at?: string
           id?: string
+          is_sample?: boolean
           user_id: string
         }
         Update: {
@@ -171,6 +179,7 @@ export type Database = {
           content?: string
           created_at?: string
           id?: string
+          is_sample?: boolean
           user_id?: string
         }
         Relationships: [
@@ -191,6 +200,7 @@ export type Database = {
           created_at: string
           description: string | null
           id: string
+          is_sample: boolean
           judge: string | null
           next_hearing_date: string | null
           practice_area: string | null
@@ -206,6 +216,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           id?: string
+          is_sample?: boolean
           judge?: string | null
           next_hearing_date?: string | null
           practice_area?: string | null
@@ -221,6 +232,7 @@ export type Database = {
           created_at?: string
           description?: string | null
           id?: string
+          is_sample?: boolean
           judge?: string | null
           next_hearing_date?: string | null
           practice_area?: string | null
@@ -245,6 +257,7 @@ export type Database = {
           created_at: string
           email: string | null
           id: string
+          is_sample: boolean
           name: string
           notes: string | null
           phone: string | null
@@ -256,6 +269,7 @@ export type Database = {
           created_at?: string
           email?: string | null
           id?: string
+          is_sample?: boolean
           name: string
           notes?: string | null
           phone?: string | null
@@ -267,6 +281,7 @@ export type Database = {
           created_at?: string
           email?: string | null
           id?: string
+          is_sample?: boolean
           name?: string
           notes?: string | null
           phone?: string | null
@@ -281,6 +296,7 @@ export type Database = {
           content: string
           created_at: string
           id: string
+          is_sample: boolean
           subject: string | null
           type: string
           user_id: string
@@ -290,6 +306,7 @@ export type Database = {
           content: string
           created_at?: string
           id?: string
+          is_sample?: boolean
           subject?: string | null
           type?: string
           user_id: string
@@ -299,6 +316,7 @@ export type Database = {
           content?: string
           created_at?: string
           id?: string
+          is_sample?: boolean
           subject?: string | null
           type?: string
           user_id?: string
@@ -463,6 +481,7 @@ export type Database = {
           created_at: string
           date: string
           id: string
+          is_sample: boolean
           judge: string | null
           notes: string | null
           outcome: string | null
@@ -475,6 +494,7 @@ export type Database = {
           created_at?: string
           date: string
           id?: string
+          is_sample?: boolean
           judge?: string | null
           notes?: string | null
           outcome?: string | null
@@ -487,6 +507,7 @@ export type Database = {
           created_at?: string
           date?: string
           id?: string
+          is_sample?: boolean
           judge?: string | null
           notes?: string | null
           outcome?: string | null
@@ -513,6 +534,7 @@ export type Database = {
           due_date: string | null
           id: string
           invoice_number: string | null
+          is_sample: boolean
           paid_date: string | null
           status: string
           updated_at: string
@@ -527,6 +549,7 @@ export type Database = {
           due_date?: string | null
           id?: string
           invoice_number?: string | null
+          is_sample?: boolean
           paid_date?: string | null
           status?: string
           updated_at?: string
@@ -541,6 +564,7 @@ export type Database = {
           due_date?: string | null
           id?: string
           invoice_number?: string | null
+          is_sample?: boolean
           paid_date?: string | null
           status?: string
           updated_at?: string
@@ -574,7 +598,10 @@ export type Database = {
           full_name: string | null
           id: string
           institution: string | null
+          onboarding_completed: boolean
           phone: string | null
+          sample_data_cleared: boolean
+          sample_data_seeded: boolean
           updated_at: string
           user_id: string
         }
@@ -588,7 +615,10 @@ export type Database = {
           full_name?: string | null
           id?: string
           institution?: string | null
+          onboarding_completed?: boolean
           phone?: string | null
+          sample_data_cleared?: boolean
+          sample_data_seeded?: boolean
           updated_at?: string
           user_id: string
         }
@@ -602,7 +632,10 @@ export type Database = {
           full_name?: string | null
           id?: string
           institution?: string | null
+          onboarding_completed?: boolean
           phone?: string | null
+          sample_data_cleared?: boolean
+          sample_data_seeded?: boolean
           updated_at?: string
           user_id?: string
         }
@@ -614,6 +647,7 @@ export type Database = {
           created_at: string
           document_type: string
           id: string
+          is_sample: boolean
           parameters: Json | null
           parent_id: string | null
           status: string
@@ -627,6 +661,7 @@ export type Database = {
           created_at?: string
           document_type: string
           id?: string
+          is_sample?: boolean
           parameters?: Json | null
           parent_id?: string | null
           status?: string
@@ -640,6 +675,7 @@ export type Database = {
           created_at?: string
           document_type?: string
           id?: string
+          is_sample?: boolean
           parameters?: Json | null
           parent_id?: string | null
           status?: string
@@ -663,6 +699,7 @@ export type Database = {
           created_at: string
           filters: Json | null
           id: string
+          is_sample: boolean
           query_text: string
           query_type: string
           result_summary: string | null
@@ -672,6 +709,7 @@ export type Database = {
           created_at?: string
           filters?: Json | null
           id?: string
+          is_sample?: boolean
           query_text: string
           query_type?: string
           result_summary?: string | null
@@ -681,6 +719,7 @@ export type Database = {
           created_at?: string
           filters?: Json | null
           id?: string
+          is_sample?: boolean
           query_text?: string
           query_type?: string
           result_summary?: string | null
@@ -696,6 +735,7 @@ export type Database = {
           description: string | null
           due_date: string | null
           id: string
+          is_sample: boolean
           title: string
           user_id: string
         }
@@ -706,6 +746,7 @@ export type Database = {
           description?: string | null
           due_date?: string | null
           id?: string
+          is_sample?: boolean
           title: string
           user_id: string
         }
@@ -716,6 +757,7 @@ export type Database = {
           description?: string | null
           due_date?: string | null
           id?: string
+          is_sample?: boolean
           title?: string
           user_id?: string
         }
