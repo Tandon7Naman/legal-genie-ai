@@ -1,9 +1,15 @@
 import { Link } from "react-router-dom";
+import { SEO } from "@/components/SEO";
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 const Privacy = () => (
   <div className="min-h-screen bg-background">
+    <SEO
+      title="Privacy Policy | Tandon Associates"
+      description="How Tandon Associates collects, uses, and protects your personal and case data on India's AI-powered legal platform."
+      path="/privacy"
+    />
     <header className="border-b border-border py-4">
       <div className="container mx-auto px-4 flex items-center gap-3">
         <Button variant="ghost" size="icon" asChild>
