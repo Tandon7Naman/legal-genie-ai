@@ -30,13 +30,13 @@ import {
 interface WidgetConfig { id: string; type: string; colSpan?: number; }
 
 const ALL_WIDGETS: WidgetConfig[] = [
+  { id: "case-stats", type: "case-stats", colSpan: 3 },
   { id: "quick-actions", type: "quick-actions" },
-  { id: "for-you", type: "for-you" },
   { id: "notifications", type: "notifications" },
-  { id: "case-stats", type: "case-stats" },
-  { id: "recent-cases", type: "recent-cases" },
   { id: "upcoming-hearings", type: "upcoming-hearings" },
-  { id: "research-history", type: "research-history" },
+  { id: "for-you", type: "for-you", colSpan: 2 },
+  { id: "recent-cases", type: "recent-cases" },
+  { id: "research-history", type: "research-history", colSpan: 3 },
 ];
 
 const WIDGET_META: Record<string, { title: string; icon: React.ReactNode }> = {
