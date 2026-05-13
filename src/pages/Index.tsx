@@ -1,3 +1,4 @@
+import { SEO } from "@/components/SEO";
 import { Navbar } from "@/components/landing/Navbar";
 import { HeroSection } from "@/components/landing/HeroSection";
 import { PracticeAreas } from "@/components/landing/PracticeAreas";
@@ -12,6 +13,11 @@ import { CookieConsent } from "@/components/landing/CookieConsent";
 const Index = () => {
   return (
     <div className="min-h-screen">
+      <SEO
+        title="Tandon Associates | AI-Powered Legal Research Platform India"
+        description="India's intelligent legal platform for lawyers, law firms, and students. AI-powered legal research, case management, document drafting, and eCourts tracking."
+        path="/"
+      />
       <Navbar />
       <HeroSection />
       <FeaturesSection />
