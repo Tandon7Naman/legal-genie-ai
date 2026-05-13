@@ -30,13 +30,13 @@ import {
 interface WidgetConfig { id: string; type: string; colSpan?: number; }
 
 const ALL_WIDGETS: WidgetConfig[] = [
+  { id: "case-stats", type: "case-stats", colSpan: 3 },
   { id: "quick-actions", type: "quick-actions" },
-  { id: "for-you", type: "for-you" },
   { id: "notifications", type: "notifications" },
-  { id: "case-stats", type: "case-stats" },
-  { id: "recent-cases", type: "recent-cases" },
   { id: "upcoming-hearings", type: "upcoming-hearings" },
-  { id: "research-history", type: "research-history" },
+  { id: "for-you", type: "for-you", colSpan: 2 },
+  { id: "recent-cases", type: "recent-cases" },
+  { id: "research-history", type: "research-history", colSpan: 3 },
 ];
 
 const WIDGET_META: Record<string, { title: string; icon: React.ReactNode }> = {
@@ -78,7 +78,13 @@ const Dashboard = () => {
         .eq("user_id", user.id)
         .maybeSingle();
       if (data?.layout && Array.isArray(data.layout) && data.layout.length > 0) {
-        setWidgets(data.layout as unknown as WidgetConfig[]);
+        const saved = data.layout as unknown as WidgetConfig[];
+        // Merge in latest colSpan defaults so saved layouts pick up new sizing
+        const merged = saved.map((w) => {
+          const def = ALL_WIDGETS.find((d) => d.type === w.type);
+          return { ...w, colSpan: def?.colSpan };
+        });
+        setWidgets(merged);
       }
     };
     load();

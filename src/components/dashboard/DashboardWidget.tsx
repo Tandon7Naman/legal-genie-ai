@@ -44,6 +44,7 @@ export const DashboardWidget = ({
       style={style}
       className={cn(
         colSpan === 2 ? "md:col-span-2" : "",
+        colSpan === 3 ? "md:col-span-2 lg:col-span-3" : "",
         isDragging ? "z-50 opacity-80" : "",
         className
       )}
