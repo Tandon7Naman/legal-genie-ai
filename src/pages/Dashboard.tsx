@@ -78,7 +78,13 @@ const Dashboard = () => {
         .eq("user_id", user.id)
         .maybeSingle();
       if (data?.layout && Array.isArray(data.layout) && data.layout.length > 0) {
-        setWidgets(data.layout as unknown as WidgetConfig[]);
+        const saved = data.layout as unknown as WidgetConfig[];
+        // Merge in latest colSpan defaults so saved layouts pick up new sizing
+        const merged = saved.map((w) => {
+          const def = ALL_WIDGETS.find((d) => d.type === w.type);
+          return { ...w, colSpan: def?.colSpan };
+        });
+        setWidgets(merged);
       }
     };
     load();
