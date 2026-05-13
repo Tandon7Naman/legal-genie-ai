@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import { SEO } from "@/components/SEO";
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
@@ -51,8 +52,27 @@ const FAQ_SECTIONS = [
   },
 ];
 
-const FAQ = () => (
+const FAQ = () => {
+  const faqJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    mainEntity: FAQ_SECTIONS.flatMap((section) =>
+      section.items.map((item) => ({
+        "@type": "Question",
+        name: item.q,
+        acceptedAnswer: { "@type": "Answer", text: item.a },
+      }))
+    ),
+  };
+
+  return (
   <div className="min-h-screen bg-background">
+    <SEO
+      title="FAQ | Tandon Associates Legal Platform"
+      description="Answers about Tandon Associates' AI legal research, case management, eCourts tracking, pricing, and security for Indian lawyers, firms, and students."
+      path="/faq"
+      jsonLd={faqJsonLd}
+    />
     <header className="border-b border-border py-4">
       <div className="container mx-auto px-4 flex items-center gap-3">
         <Button variant="ghost" size="icon" asChild>
@@ -88,5 +108,6 @@ const FAQ = () => (
     </main>
   </div>
 );
+};
 
 export default FAQ;
