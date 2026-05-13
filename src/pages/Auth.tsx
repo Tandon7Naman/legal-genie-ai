@@ -92,6 +92,11 @@ const Auth = () => {
 
   return (
     <div className="min-h-screen bg-gradient-mesh flex items-center justify-center p-4">
+      <SEO
+        title="Sign In or Sign Up | Tandon Associates"
+        description="Access your Tandon Associates account to use AI legal research, case management, and document drafting tools built for Indian legal professionals."
+        path="/auth"
+      />
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
