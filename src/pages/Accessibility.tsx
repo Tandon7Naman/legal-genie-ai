@@ -1,9 +1,15 @@
 import { Link } from "react-router-dom";
+import { SEO } from "@/components/SEO";
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 const Accessibility = () => (
   <div className="min-h-screen bg-background">
+    <SEO
+      title="Accessibility Statement | Tandon Associates"
+      description="Tandon Associates' commitment to WCAG 2.1 AA accessibility and inclusive design for India's legal professionals and students."
+      path="/accessibility"
+    />
     <header className="border-b border-border py-4">
       <div className="container mx-auto px-4 flex items-center gap-3">
         <Button variant="ghost" size="icon" asChild>

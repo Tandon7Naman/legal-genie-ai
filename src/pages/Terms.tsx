@@ -1,9 +1,15 @@
 import { Link } from "react-router-dom";
+import { SEO } from "@/components/SEO";
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 const Terms = () => (
   <div className="min-h-screen bg-background">
+    <SEO
+      title="Terms of Service | Tandon Associates"
+      description="Terms governing use of the Tandon Associates AI legal research and case management platform for Indian lawyers, firms, and students."
+      path="/terms"
+    />
     <header className="border-b border-border py-4">
       <div className="container mx-auto px-4 flex items-center gap-3">
         <Button variant="ghost" size="icon" asChild>
