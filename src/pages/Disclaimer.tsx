@@ -1,9 +1,15 @@
 import { Link } from "react-router-dom";
+import { SEO } from "@/components/SEO";
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 const Disclaimer = () => (
   <div className="min-h-screen bg-background">
+    <SEO
+      title="Legal Disclaimer | Tandon Associates"
+      description="Important disclaimers about AI-generated legal research, drafts, and analyses on the Tandon Associates platform."
+      path="/disclaimer"
+    />
     <header className="border-b border-border py-4">
       <div className="container mx-auto px-4 flex items-center gap-3">
         <Button variant="ghost" size="icon" asChild>
