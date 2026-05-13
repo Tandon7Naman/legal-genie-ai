@@ -47,7 +47,7 @@ export const HeroSection = () => {
               <span className="text-gradient-gold">Practice</span>
             </h1>
 
-            <p className="text-lg md:text-xl text-primary-foreground/50 max-w-lg mb-10 font-sans leading-relaxed">
+            <p className="text-lg md:text-xl text-primary-foreground/80 max-w-lg mb-10 font-sans leading-relaxed">
               India's intelligent legal platform. AI-powered research, case management, and document drafting — built for lawyers, firms, and law students.
             </p>
 
@@ -66,7 +66,7 @@ export const HeroSection = () => {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.8 }}
-              className="flex flex-wrap items-center gap-4 sm:gap-6 text-primary-foreground/30"
+              className="flex flex-wrap items-center gap-4 sm:gap-6 text-primary-foreground/70"
             >
               <div className="flex items-center gap-2">
                 <Users size={16} className="text-secondary/60" />
