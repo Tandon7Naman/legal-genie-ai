@@ -1,0 +1,15 @@
+# Tandon Associates
+
+> India's AI-powered legal research, case management, document drafting, and eCourts tracking platform for lawyers, law firms, corporate legal teams, and law students.
+
+Tandon Associates combines grounded Indian legal AI (IPC, CrPC, CPC, Constitution, landmark judgments) with practice-management tools — cases, clients, calendar, contracts, conflict checks, billing, and an immutable audit trail. A free Student Hub provides a Moot Court Simulator, Case Brief Generator (IRAC), and Statute Simplifier.
+
+## Pages
+
+- [Home](/): Product overview, features, pricing, and contact.
+- [FAQ](/faq): Answers for students, individual lawyers, law firms, and corporate teams.
+- [Sign In / Sign Up](/auth): Account access for the platform.
+- [Privacy Policy](/privacy): How user and case data is collected, stored, and protected.
+- [Terms of Service](/terms): Terms governing platform use.
+- [Legal Disclaimer](/disclaimer): Disclaimers about AI-generated legal content.
+- [Accessibility](/accessibility): WCAG 2.1 AA commitment and accessibility statement.
