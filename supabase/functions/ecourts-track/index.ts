@@ -101,7 +101,15 @@ serve(async (req) => {
           console.error("eCourts API error", resp.status, err);
           throw new Error("Upstream service error");
         }
-        result = await resp.json();
+        const json = await resp.json();
+        // Upstream shape: { data: { courtCaseData: {...}, entityInfo, files, ... }, meta }
+        // Flatten so the client can read fields like cnr/caseNumber directly off result.data
+        if (json?.data?.courtCaseData) {
+          const { courtCaseData, ...rest } = json.data;
+          result = { ...json, data: { ...courtCaseData, ...rest } };
+        } else {
+          result = json;
+        }
         break;
       }
 
