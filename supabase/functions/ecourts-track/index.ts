@@ -9,8 +9,8 @@ const corsHeaders = {
 
 const ECOURTS_BASE = "https://webapi.ecourtsindia.com/api/partner";
 
-// Real CNRs follow: 2 letters (state), 2 alphanumeric (district), 10 digits (sequence+year)
-const CNR_RE = /^[A-Z]{2}[A-Z0-9]{2}[0-9]{10}$/;
+// Real CNRs are 16 chars: 4 letters (court code) + 12 digits (case number + filing year)
+const CNR_RE = /^[A-Z]{4}[0-9]{12}$/;
 // Whitelisted court-structure path segments (no traversal, no arbitrary sub-paths)
 const COURT_SEG_RE = /^[A-Za-z0-9_\-]{1,40}$/;
 const ALLOWED_SEARCH_KEYS = new Set([
