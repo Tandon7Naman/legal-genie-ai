@@ -234,7 +234,7 @@ const ECourtsPage = () => {
 
   const streamOrderAnalysis = async (order: any, force = false) => {
     const key = order.filename || order.orderUrl;
-    if (!cd?.cnr || !key) return;
+    if (!currentCnr || !key) return;
     const existing = orderAnalysis[key];
     if (!force && existing && existing.text && !existing.error) {
       setOrderAnalysis((p) => ({ ...p, [key]: { ...existing, expanded: true } }));
@@ -254,18 +254,18 @@ const ECourtsPage = () => {
           Authorization: `Bearer ${session?.access_token || ""}`,
         },
         body: JSON.stringify({
-          cnrNumber: cd.cnr,
+          cnrNumber: currentCnr,
           filename: key,
           orderMeta: order,
           caseContext: {
-            cnr: cd.cnr,
-            caseType: cd?.caseDetails?.caseType,
-            registrationNumber: cd?.caseDetails?.registrationNumber,
-            filingNumber: cd?.caseDetails?.filingNumber,
-            court: cd?.caseDetails?.court || cd?.court,
+            cnr: currentCnr,
+            caseType: displayCaseType,
+            registrationNumber: cd?.caseDetails?.registrationNumber || cd?.registrationNumber,
+            filingNumber: cd?.caseDetails?.filingNumber || cd?.filingNumber,
+            court: displayCourt,
             parties: {
-              petitioners: cd?.petitioners || cd?.petitionerName,
-              respondents: cd?.respondents || cd?.respondentName,
+              petitioners: petitionersList,
+              respondents: respondentsList,
             },
           },
         }),
