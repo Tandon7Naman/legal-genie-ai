@@ -110,6 +110,45 @@ const ECourtsPage = () => {
 
   const cd = caseData?.courtCaseData ?? caseData;
 
+  const firstValue = (...values: any[]) => {
+    for (const value of values) {
+      if (Array.isArray(value)) {
+        const first = value.find((item) => item !== undefined && item !== null && String(item).trim() !== "");
+        if (first !== undefined) return String(first).trim();
+      } else if (value !== undefined && value !== null && String(value).trim() !== "") {
+        return String(value).trim();
+      }
+    }
+    return "";
+  };
+
+  const toList = (value: any): string[] => {
+    if (Array.isArray(value)) return value.map((item) => String(item).trim()).filter(Boolean);
+    if (typeof value === "string") {
+      return value
+        .split(/\n|\r|;|\s{2,}/)
+        .map((item) => item.trim())
+        .filter(Boolean);
+    }
+    if (value !== undefined && value !== null) return [String(value).trim()].filter(Boolean);
+    return [];
+  };
+
+  const currentCnr = firstValue(cd?.cnr, cd?.cnrNumber, cnrNumber.trim().toUpperCase().replace(/[^A-Z0-9]/g, ""));
+  const displayCaseNumber = firstValue(cd?.caseNumber, cd?.registrationNumber, cd?.filingNumber, currentCnr, "Case details");
+  const displayStatus = firstValue(cd?.caseStatus, cd?.status, cd?.caseStage, "Status unavailable");
+  const displayCourt = firstValue(cd?.courtName, cd?.court, cd?.courtComplexName, cd?.courtComplex, cd?.courtNo && `Court No. ${cd.courtNo}`);
+  const displayLocation = [displayCourt, firstValue(cd?.district), firstValue(cd?.state)].filter(Boolean).join(" — ");
+  const displayFiled = firstValue(cd?.filingDate, cd?.dateOfFiling, cd?.registrationDate, cd?.createdAt, "N/A");
+  const displayNextHearing = firstValue(cd?.nextHearingDate, cd?.nextDate, cd?.nextHearing, cd?.businessOnDate, "N/A");
+  const displayCaseType = firstValue(cd?.caseType, cd?.caseTypeSub, cd?.type, "N/A");
+  const displayPurpose = firstValue(cd?.purpose, cd?.purposeOfListing, cd?.caseStage, "N/A");
+  const judgesList = toList(cd?.judges ?? cd?.judge ?? cd?.judgeName ?? cd?.presidingOfficer);
+  const petitionersList = toList(cd?.petitioners ?? cd?.petitioner ?? cd?.petitionerName ?? cd?.petitionerNames);
+  const respondentsList = toList(cd?.respondents ?? cd?.respondent ?? cd?.respondentName ?? cd?.respondentNames);
+  const petitionerAdvocates = toList(cd?.petitionerAdvocates ?? cd?.petitionerAdvocate ?? cd?.petAdvocates);
+  const respondentAdvocates = toList(cd?.respondentAdvocates ?? cd?.respondentAdvocate ?? cd?.resAdvocates);
+
   // Normalize the eCourts response — the API uses different field names
   // (judgmentOrders, historyOfCaseHearings, interlocutoryApplications) than
   // our UI originally expected (orders/judgments/hearings/ias).
@@ -142,7 +181,7 @@ const ECourtsPage = () => {
     const raw =
       rec?.url || rec?.fileUrl || rec?.orderUrl || rec?.judgmentUrl ||
       rec?.documentUrl || rec?.filename || null;
-    if (!raw || !cd?.cnr) return;
+    if (!raw || !currentCnr) return;
     if (/^https?:\/\//i.test(raw)) {
       window.open(raw, "_blank", "noopener,noreferrer");
       return;
@@ -156,7 +195,7 @@ const ECourtsPage = () => {
         },
         body: JSON.stringify({
           action: "document-proxy",
-          cnrNumber: cd.cnr,
+          cnrNumber: currentCnr,
           searchParams: { filename: raw },
         }),
       });
