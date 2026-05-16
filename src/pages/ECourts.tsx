@@ -108,7 +108,7 @@ const ECourtsPage = () => {
     }
   };
 
-  const cd = caseData?.courtCaseData;
+  const cd = caseData?.courtCaseData ?? caseData;
 
   // Normalize the eCourts response — the API uses different field names
   // (judgmentOrders, historyOfCaseHearings, interlocutoryApplications) than
