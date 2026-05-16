@@ -110,6 +110,46 @@ const ECourtsPage = () => {
 
   const cd = caseData?.courtCaseData ?? caseData;
 
+  const firstValue = (...values: any[]) => {
+    for (const value of values) {
+      if (Array.isArray(value)) {
+        const first = value.find((item) => item !== undefined && item !== null && String(item).trim() !== "");
+        if (first !== undefined) return String(first).trim();
+      } else if (value !== undefined && value !== null && String(value).trim() !== "") {
+        return String(value).trim();
+      }
+    }
+    return "";
+  };
+
+  const toList = (value: any): string[] => {
+    if (Array.isArray(value)) return value.map((item) => String(item).trim()).filter(Boolean);
+    if (typeof value === "string") {
+      return value
+        .split(/\n|\r|;|\s{2,}/)
+        .map((item) => item.trim())
+        .filter(Boolean);
+    }
+    if (value !== undefined && value !== null) return [String(value).trim()].filter(Boolean);
+    return [];
+  };
+
+  const currentCnr = firstValue(cd?.cnr, cd?.cnrNumber, cnrNumber.trim().toUpperCase().replace(/[^A-Z0-9]/g, ""));
+  const displayCaseNumber = firstValue(cd?.caseNumber, cd?.registrationNumber, cd?.filingNumber, currentCnr, "Case details");
+  const displayStatus = firstValue(cd?.caseStatus, cd?.status, cd?.caseStage, "Status unavailable");
+  const displayCourt = firstValue(cd?.courtName, cd?.court, cd?.courtComplexName, cd?.courtComplex, cd?.courtNo && `Court No. ${cd.courtNo}`);
+  const displayLocation = [displayCourt, firstValue(cd?.district), firstValue(cd?.state)].filter(Boolean).join(" — ");
+  const displayFiled = firstValue(cd?.filingDate, cd?.dateOfFiling, cd?.registrationDate, cd?.createdAt, "N/A");
+  const displayNextHearing = firstValue(cd?.nextHearingDate, cd?.nextDate, cd?.nextHearing, cd?.businessOnDate, "N/A");
+  const displayCaseType = firstValue(cd?.caseType, cd?.caseTypeSub, cd?.type, "N/A");
+  const displayPurpose = firstValue(cd?.purpose, cd?.purposeOfListing, cd?.caseStage, "N/A");
+  const judgesList = toList(cd?.judges ?? cd?.judge ?? cd?.judgeName ?? cd?.presidingOfficer);
+  const petitionersList = toList(cd?.petitioners ?? cd?.petitioner ?? cd?.petitionerName ?? cd?.petitionerNames);
+  const respondentsList = toList(cd?.respondents ?? cd?.respondent ?? cd?.respondentName ?? cd?.respondentNames);
+  const petitionerAdvocates = toList(cd?.petitionerAdvocates ?? cd?.petitionerAdvocate ?? cd?.petAdvocates);
+  const respondentAdvocates = toList(cd?.respondentAdvocates ?? cd?.respondentAdvocate ?? cd?.resAdvocates);
+  const actsList = toList(cd?.actsAndSections ?? cd?.acts ?? cd?.underActs ?? cd?.sections);
+
   // Normalize the eCourts response — the API uses different field names
   // (judgmentOrders, historyOfCaseHearings, interlocutoryApplications) than
   // our UI originally expected (orders/judgments/hearings/ias).
@@ -142,7 +182,7 @@ const ECourtsPage = () => {
     const raw =
       rec?.url || rec?.fileUrl || rec?.orderUrl || rec?.judgmentUrl ||
       rec?.documentUrl || rec?.filename || null;
-    if (!raw || !cd?.cnr) return;
+    if (!raw || !currentCnr) return;
     if (/^https?:\/\//i.test(raw)) {
       window.open(raw, "_blank", "noopener,noreferrer");
       return;
@@ -156,7 +196,7 @@ const ECourtsPage = () => {
         },
         body: JSON.stringify({
           action: "document-proxy",
-          cnrNumber: cd.cnr,
+          cnrNumber: currentCnr,
           searchParams: { filename: raw },
         }),
       });
@@ -195,7 +235,7 @@ const ECourtsPage = () => {
 
   const streamOrderAnalysis = async (order: any, force = false) => {
     const key = order.filename || order.orderUrl;
-    if (!cd?.cnr || !key) return;
+    if (!currentCnr || !key) return;
     const existing = orderAnalysis[key];
     if (!force && existing && existing.text && !existing.error) {
       setOrderAnalysis((p) => ({ ...p, [key]: { ...existing, expanded: true } }));
@@ -215,18 +255,18 @@ const ECourtsPage = () => {
           Authorization: `Bearer ${session?.access_token || ""}`,
         },
         body: JSON.stringify({
-          cnrNumber: cd.cnr,
+          cnrNumber: currentCnr,
           filename: key,
           orderMeta: order,
           caseContext: {
-            cnr: cd.cnr,
-            caseType: cd?.caseDetails?.caseType,
-            registrationNumber: cd?.caseDetails?.registrationNumber,
-            filingNumber: cd?.caseDetails?.filingNumber,
-            court: cd?.caseDetails?.court || cd?.court,
+            cnr: currentCnr,
+            caseType: displayCaseType,
+            registrationNumber: cd?.caseDetails?.registrationNumber || cd?.registrationNumber,
+            filingNumber: cd?.caseDetails?.filingNumber || cd?.filingNumber,
+            court: displayCourt,
             parties: {
-              petitioners: cd?.petitioners || cd?.petitionerName,
-              respondents: cd?.respondents || cd?.respondentName,
+              petitioners: petitionersList,
+              respondents: respondentsList,
             },
           },
         }),
@@ -401,15 +441,15 @@ const ECourtsPage = () => {
                 <div>
                   <h2 className="font-serif text-lg font-bold flex items-center gap-2">
                     <Gavel className="w-5 h-5 text-secondary" />
-                    {cd.caseNumber || cd.cnr}
+                    {displayCaseNumber}
                   </h2>
-                  <p className="text-sm text-muted-foreground mt-1">{cd.courtName} — {cd.state}</p>
+                  <p className="text-sm text-muted-foreground mt-1">{displayLocation || currentCnr}</p>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Badge variant={cd.caseStatus === "PENDING" ? "default" : "secondary"}>
-                    {cd.caseStatus}
+                  <Badge variant={displayStatus.toUpperCase() === "PENDING" ? "default" : "secondary"}>
+                    {displayStatus}
                   </Badge>
-                  <Button variant="ghost" size="sm" onClick={() => handleRefresh(cd.cnr)} title="Refresh from source">
+                  <Button variant="ghost" size="sm" onClick={() => handleRefresh(currentCnr)} title="Refresh from source" disabled={!currentCnr}>
                     <RefreshCw className="w-4 h-4" />
                   </Button>
                 </div>
@@ -418,22 +458,22 @@ const ECourtsPage = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                 <div className="space-y-2">
                   <div className="flex items-center gap-2 text-muted-foreground">
-                    <Calendar className="w-4 h-4" /> <span>Filed: {cd.filingDate || "N/A"}</span>
+                    <Calendar className="w-4 h-4" /> <span>Filed: {displayFiled}</span>
                   </div>
                   <div className="flex items-center gap-2 text-muted-foreground">
-                    <Clock className="w-4 h-4" /> <span>Next Hearing: {cd.nextHearingDate || "N/A"}</span>
+                    <Clock className="w-4 h-4" /> <span>Next Hearing: {displayNextHearing}</span>
                   </div>
                   <div className="flex items-center gap-2 text-muted-foreground">
-                    <FileText className="w-4 h-4" /> <span>Type: {cd.caseType} — {cd.purpose || "N/A"}</span>
+                    <FileText className="w-4 h-4" /> <span>Type: {displayCaseType} — {displayPurpose}</span>
                   </div>
                 </div>
                 <div className="space-y-2">
                   <div className="flex items-center gap-2 text-muted-foreground">
-                    <Users className="w-4 h-4" /> <span>Judge(s): {cd.judges?.join(", ") || "N/A"}</span>
+                    <Users className="w-4 h-4" /> <span>Judge(s): {judgesList.join(", ") || "N/A"}</span>
                   </div>
-                  {cd.actsAndSections && (
+                  {actsList.length > 0 && (
                     <div className="text-muted-foreground text-xs mt-1">
-                      <strong>Acts:</strong> {cd.actsAndSections}
+                      <strong>Acts:</strong> {actsList.join(", ")}
                     </div>
                   )}
                 </div>
@@ -443,20 +483,20 @@ const ECourtsPage = () => {
               <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="p-3 rounded-lg bg-background/50 border border-border/10">
                   <h4 className="text-xs font-semibold text-muted-foreground mb-2 uppercase tracking-wider">Petitioner(s)</h4>
-                  {cd.petitioners?.map((p: string, i: number) => (
+                  {petitionersList.length ? petitionersList.map((p: string, i: number) => (
                     <p key={i} className="text-sm">{p}</p>
-                  ))}
-                  {cd.petitionerAdvocates?.length > 0 && (
-                    <p className="text-xs text-muted-foreground mt-1">Adv: {cd.petitionerAdvocates.join(", ")}</p>
+                  )) : <p className="text-sm text-muted-foreground">N/A</p>}
+                  {petitionerAdvocates.length > 0 && (
+                    <p className="text-xs text-muted-foreground mt-1">Adv: {petitionerAdvocates.join(", ")}</p>
                   )}
                 </div>
                 <div className="p-3 rounded-lg bg-background/50 border border-border/10">
                   <h4 className="text-xs font-semibold text-muted-foreground mb-2 uppercase tracking-wider">Respondent(s)</h4>
-                  {cd.respondents?.map((r: string, i: number) => (
+                  {respondentsList.length ? respondentsList.map((r: string, i: number) => (
                     <p key={i} className="text-sm">{r}</p>
-                  ))}
-                  {cd.respondentAdvocates?.length > 0 && (
-                    <p className="text-xs text-muted-foreground mt-1">Adv: {cd.respondentAdvocates.join(", ")}</p>
+                  )) : <p className="text-sm text-muted-foreground">N/A</p>}
+                  {respondentAdvocates.length > 0 && (
+                    <p className="text-xs text-muted-foreground mt-1">Adv: {respondentAdvocates.join(", ")}</p>
                   )}
                 </div>
               </div>
