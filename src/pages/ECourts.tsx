@@ -440,15 +440,15 @@ const ECourtsPage = () => {
                 <div>
                   <h2 className="font-serif text-lg font-bold flex items-center gap-2">
                     <Gavel className="w-5 h-5 text-secondary" />
-                    {cd.caseNumber || cd.cnr}
+                    {displayCaseNumber}
                   </h2>
-                  <p className="text-sm text-muted-foreground mt-1">{cd.courtName} — {cd.state}</p>
+                  <p className="text-sm text-muted-foreground mt-1">{displayLocation || currentCnr}</p>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Badge variant={cd.caseStatus === "PENDING" ? "default" : "secondary"}>
-                    {cd.caseStatus}
+                  <Badge variant={displayStatus.toUpperCase() === "PENDING" ? "default" : "secondary"}>
+                    {displayStatus}
                   </Badge>
-                  <Button variant="ghost" size="sm" onClick={() => handleRefresh(cd.cnr)} title="Refresh from source">
+                  <Button variant="ghost" size="sm" onClick={() => handleRefresh(currentCnr)} title="Refresh from source" disabled={!currentCnr}>
                     <RefreshCw className="w-4 h-4" />
                   </Button>
                 </div>
@@ -457,18 +457,18 @@ const ECourtsPage = () => {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                 <div className="space-y-2">
                   <div className="flex items-center gap-2 text-muted-foreground">
-                    <Calendar className="w-4 h-4" /> <span>Filed: {cd.filingDate || "N/A"}</span>
+                    <Calendar className="w-4 h-4" /> <span>Filed: {displayFiled}</span>
                   </div>
                   <div className="flex items-center gap-2 text-muted-foreground">
-                    <Clock className="w-4 h-4" /> <span>Next Hearing: {cd.nextHearingDate || "N/A"}</span>
+                    <Clock className="w-4 h-4" /> <span>Next Hearing: {displayNextHearing}</span>
                   </div>
                   <div className="flex items-center gap-2 text-muted-foreground">
-                    <FileText className="w-4 h-4" /> <span>Type: {cd.caseType} — {cd.purpose || "N/A"}</span>
+                    <FileText className="w-4 h-4" /> <span>Type: {displayCaseType} — {displayPurpose}</span>
                   </div>
                 </div>
                 <div className="space-y-2">
                   <div className="flex items-center gap-2 text-muted-foreground">
-                    <Users className="w-4 h-4" /> <span>Judge(s): {cd.judges?.join(", ") || "N/A"}</span>
+                    <Users className="w-4 h-4" /> <span>Judge(s): {judgesList.join(", ") || "N/A"}</span>
                   </div>
                   {cd.actsAndSections && (
                     <div className="text-muted-foreground text-xs mt-1">
@@ -482,20 +482,20 @@ const ECourtsPage = () => {
               <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="p-3 rounded-lg bg-background/50 border border-border/10">
                   <h4 className="text-xs font-semibold text-muted-foreground mb-2 uppercase tracking-wider">Petitioner(s)</h4>
-                  {cd.petitioners?.map((p: string, i: number) => (
+                  {petitionersList.length ? petitionersList.map((p: string, i: number) => (
                     <p key={i} className="text-sm">{p}</p>
-                  ))}
-                  {cd.petitionerAdvocates?.length > 0 && (
-                    <p className="text-xs text-muted-foreground mt-1">Adv: {cd.petitionerAdvocates.join(", ")}</p>
+                  )) : <p className="text-sm text-muted-foreground">N/A</p>}
+                  {petitionerAdvocates.length > 0 && (
+                    <p className="text-xs text-muted-foreground mt-1">Adv: {petitionerAdvocates.join(", ")}</p>
                   )}
                 </div>
                 <div className="p-3 rounded-lg bg-background/50 border border-border/10">
                   <h4 className="text-xs font-semibold text-muted-foreground mb-2 uppercase tracking-wider">Respondent(s)</h4>
-                  {cd.respondents?.map((r: string, i: number) => (
+                  {respondentsList.length ? respondentsList.map((r: string, i: number) => (
                     <p key={i} className="text-sm">{r}</p>
-                  ))}
-                  {cd.respondentAdvocates?.length > 0 && (
-                    <p className="text-xs text-muted-foreground mt-1">Adv: {cd.respondentAdvocates.join(", ")}</p>
+                  )) : <p className="text-sm text-muted-foreground">N/A</p>}
+                  {respondentAdvocates.length > 0 && (
+                    <p className="text-xs text-muted-foreground mt-1">Adv: {respondentAdvocates.join(", ")}</p>
                   )}
                 </div>
               </div>
