@@ -148,6 +148,7 @@ const ECourtsPage = () => {
   const respondentsList = toList(cd?.respondents ?? cd?.respondent ?? cd?.respondentName ?? cd?.respondentNames);
   const petitionerAdvocates = toList(cd?.petitionerAdvocates ?? cd?.petitionerAdvocate ?? cd?.petAdvocates);
   const respondentAdvocates = toList(cd?.respondentAdvocates ?? cd?.respondentAdvocate ?? cd?.resAdvocates);
+  const actsList = toList(cd?.actsAndSections ?? cd?.acts ?? cd?.underActs ?? cd?.sections);
 
   // Normalize the eCourts response — the API uses different field names
   // (judgmentOrders, historyOfCaseHearings, interlocutoryApplications) than
@@ -470,9 +471,9 @@ const ECourtsPage = () => {
                   <div className="flex items-center gap-2 text-muted-foreground">
                     <Users className="w-4 h-4" /> <span>Judge(s): {judgesList.join(", ") || "N/A"}</span>
                   </div>
-                  {cd.actsAndSections && (
+                  {actsList.length > 0 && (
                     <div className="text-muted-foreground text-xs mt-1">
-                      <strong>Acts:</strong> {cd.actsAndSections}
+                      <strong>Acts:</strong> {actsList.join(", ")}
                     </div>
                   )}
                 </div>
