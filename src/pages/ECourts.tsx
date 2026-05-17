@@ -560,6 +560,15 @@ const ECourtsPage = () => {
                     <Gavel className="w-3 h-3" /> {cd.judgmentCount || judgmentsFinal.length} Judgments
                   </button>
                 )}
+                {transferDetails.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => toggleDetailTab("transfers")}
+                    className={chipClass(activeDetailTab === "transfers")}
+                  >
+                    <ChevronRight className="w-3 h-3" /> {transferDetails.length} Transfer Details
+                  </button>
+                )}
               </div>
 
               {/* Drill-down Panel */}
@@ -805,6 +814,42 @@ const ECourtsPage = () => {
                           ) : (
                             <p className="text-sm text-muted-foreground py-4 text-center">
                               No interlocutory applications available.
+                            </p>
+                          )}
+                        </>
+                      )}
+
+                      {activeDetailTab === "transfers" && (
+                        <>
+                          {transferDetails.length ? (
+                            transferDetails.map((transfer: any, i: number) => {
+                              const transferDate = firstValue(transfer.transferDate, transfer.date, transfer.orderDate, transfer.createdAt, "Date N/A");
+                              const fromCourt = firstValue(transfer.fromCourt, transfer.fromEstablishment, transfer.from, transfer.transferFrom, transfer.previousCourt);
+                              const toCourt = firstValue(transfer.toCourt, transfer.toEstablishment, transfer.to, transfer.transferTo, transfer.currentCourt);
+                              const reason = firstValue(transfer.reason, transfer.remarks, transfer.remark, transfer.details, transfer.description, transfer.status);
+
+                              return (
+                                <div key={i} className="p-3 rounded-lg bg-background/50 border border-border/10">
+                                  <div className="flex items-center justify-between gap-3">
+                                    <p className="text-sm font-medium">{transferDate}</p>
+                                    {firstValue(transfer.status, transfer.transferStatus) && (
+                                      <span className="text-xs px-2 py-0.5 rounded-full border border-border/30 text-muted-foreground">
+                                        {firstValue(transfer.status, transfer.transferStatus)}
+                                      </span>
+                                    )}
+                                  </div>
+                                  {(fromCourt || toCourt) && (
+                                    <p className="text-xs text-muted-foreground mt-1">
+                                      {fromCourt || "Previous establishment N/A"} → {toCourt || "Current establishment N/A"}
+                                    </p>
+                                  )}
+                                  {reason && <p className="text-xs text-muted-foreground mt-1">{reason}</p>}
+                                </div>
+                              );
+                            })
+                          ) : (
+                            <p className="text-sm text-muted-foreground py-4 text-center">
+                              No transfer details available.
                             </p>
                           )}
                         </>
