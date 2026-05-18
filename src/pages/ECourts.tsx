@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -6,11 +6,14 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
+} from "@/components/ui/dialog";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Scale, Search, Loader2, AlertCircle, Gavel, RefreshCw,
   FileText, Users, Calendar, MapPin, Clock, ChevronRight,
-  ExternalLink, Sparkles, Briefcase, Copy, X, RotateCw,
+  ExternalLink, Sparkles, Briefcase, Copy, X, RotateCw, Download, Eye,
 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 
@@ -31,6 +34,14 @@ const ECourtsPage = () => {
   const [orderAnalysis, setOrderAnalysis] = useState<
     Record<string, { text: string; loading: boolean; expanded: boolean; error?: string }>
   >({});
+
+  type RecordKind = "order" | "hearing" | "judgment";
+  const [recordDialog, setRecordDialog] = useState<{
+    open: boolean; record: any | null; kind: RecordKind | null;
+  }>({ open: false, record: null, kind: null });
+  const [pdfPreview, setPdfPreview] = useState<{
+    loading: boolean; url: string | null; blob: Blob | null; error: string | null; filename: string;
+  }>({ loading: false, url: null, blob: null, error: null, filename: "" });
 
   // Search fields
   const [searchQuery, setSearchQuery] = useState("");
@@ -233,22 +244,100 @@ const ECourtsPage = () => {
       const blob = await resp.blob();
       const url = URL.createObjectURL(blob);
       const filename = (raw.split("/").pop() || "document.pdf").replace(/[^a-zA-Z0-9._-]/g, "_");
-      // Trigger a same-page download instead of opening a new tab. Browser
-      // ad-blockers and popup blockers (ERR_BLOCKED_BY_CLIENT) commonly block
-      // window.open(blobUrl), but anchor-driven downloads are not blocked.
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = filename.endsWith(".pdf") ? filename : `${filename}.pdf`;
-      a.rel = "noopener";
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      toast({ title: "PDF downloaded", description: a.download });
-      setTimeout(() => URL.revokeObjectURL(url), 60_000);
+      downloadBlob(blob, filename);
+      URL.revokeObjectURL(url);
     } catch (err: any) {
       toast({ title: "Could not open PDF", description: err.message, variant: "destructive" });
     }
   };
+
+  const getDocRef = (rec: any): string | null =>
+    rec?.url || rec?.fileUrl || rec?.orderUrl || rec?.judgmentUrl ||
+    rec?.documentUrl || rec?.filename || null;
+
+  const downloadBlob = (blob: Blob, filename: string) => {
+    const url = URL.createObjectURL(blob);
+    const safe = (filename || "document.pdf").replace(/[^a-zA-Z0-9._-]/g, "_");
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = safe.endsWith(".pdf") ? safe : `${safe}.pdf`;
+    a.rel = "noopener";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    toast({ title: "PDF downloaded", description: a.download });
+    setTimeout(() => URL.revokeObjectURL(url), 60_000);
+  };
+
+  const fetchDocBlob = async (rec: any): Promise<{ blob: Blob; filename: string }> => {
+    const raw = getDocRef(rec);
+    if (!raw) throw new Error("No PDF attached to this record.");
+    if (!currentCnr) throw new Error("Missing CNR for document lookup.");
+    if (/^https?:\/\//i.test(raw)) {
+      const r = await fetch(raw);
+      if (!r.ok) throw new Error(`Upstream returned ${r.status}`);
+      const blob = await r.blob();
+      const filename = raw.split("/").pop() || "document.pdf";
+      return { blob, filename };
+    }
+    const resp = await fetch(`${SUPABASE_URL}/functions/v1/ecourts-track`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${session?.access_token || ""}`,
+      },
+      body: JSON.stringify({
+        action: "document-proxy",
+        cnrNumber: currentCnr,
+        searchParams: { filename: raw },
+      }),
+    });
+    if (!resp.ok) {
+      const err = await resp.json().catch(() => ({ error: "Failed to load document" }));
+      throw new Error(err.error || `Error ${resp.status}`);
+    }
+    const ctype = resp.headers.get("content-type") || "";
+    if (ctype.includes("application/json")) {
+      const data = await resp.json().catch(() => ({}));
+      throw new Error(data.error || "Document not available from eCourts.");
+    }
+    const blob = await resp.blob();
+    const filename = raw.split("/").pop() || "document.pdf";
+    return { blob, filename };
+  };
+
+  const openRecordDialog = async (record: any, kind: RecordKind) => {
+    setRecordDialog({ open: true, record, kind });
+    // Reset preview
+    setPdfPreview((prev) => {
+      if (prev.url) URL.revokeObjectURL(prev.url);
+      return { loading: false, url: null, blob: null, error: null, filename: "" };
+    });
+    if (!getDocRef(record)) return;
+    setPdfPreview({ loading: true, url: null, blob: null, error: null, filename: "" });
+    try {
+      const { blob, filename } = await fetchDocBlob(record);
+      const url = URL.createObjectURL(blob);
+      setPdfPreview({ loading: false, url, blob, error: null, filename });
+    } catch (err: any) {
+      setPdfPreview({ loading: false, url: null, blob: null, error: err.message || "Failed to load PDF", filename: "" });
+    }
+  };
+
+  const closeRecordDialog = () => {
+    setPdfPreview((prev) => {
+      if (prev.url) URL.revokeObjectURL(prev.url);
+      return { loading: false, url: null, blob: null, error: null, filename: "" };
+    });
+    setRecordDialog({ open: false, record: null, kind: null });
+  };
+
+  useEffect(() => {
+    return () => {
+      if (pdfPreview.url) URL.revokeObjectURL(pdfPreview.url);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const toggleDetailTab = (
     tab: "orders" | "hearings" | "judgments" | "ias" | "transfers",
