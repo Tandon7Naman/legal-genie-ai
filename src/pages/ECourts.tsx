@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -6,11 +6,14 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
+} from "@/components/ui/dialog";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Scale, Search, Loader2, AlertCircle, Gavel, RefreshCw,
   FileText, Users, Calendar, MapPin, Clock, ChevronRight,
-  ExternalLink, Sparkles, Briefcase, Copy, X, RotateCw,
+  ExternalLink, Sparkles, Briefcase, Copy, X, RotateCw, Download, Eye,
 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 
@@ -31,6 +34,14 @@ const ECourtsPage = () => {
   const [orderAnalysis, setOrderAnalysis] = useState<
     Record<string, { text: string; loading: boolean; expanded: boolean; error?: string }>
   >({});
+
+  type RecordKind = "order" | "hearing" | "judgment";
+  const [recordDialog, setRecordDialog] = useState<{
+    open: boolean; record: any | null; kind: RecordKind | null;
+  }>({ open: false, record: null, kind: null });
+  const [pdfPreview, setPdfPreview] = useState<{
+    loading: boolean; url: string | null; blob: Blob | null; error: string | null; filename: string;
+  }>({ loading: false, url: null, blob: null, error: null, filename: "" });
 
   // Search fields
   const [searchQuery, setSearchQuery] = useState("");
@@ -233,22 +244,100 @@ const ECourtsPage = () => {
       const blob = await resp.blob();
       const url = URL.createObjectURL(blob);
       const filename = (raw.split("/").pop() || "document.pdf").replace(/[^a-zA-Z0-9._-]/g, "_");
-      // Trigger a same-page download instead of opening a new tab. Browser
-      // ad-blockers and popup blockers (ERR_BLOCKED_BY_CLIENT) commonly block
-      // window.open(blobUrl), but anchor-driven downloads are not blocked.
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = filename.endsWith(".pdf") ? filename : `${filename}.pdf`;
-      a.rel = "noopener";
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      toast({ title: "PDF downloaded", description: a.download });
-      setTimeout(() => URL.revokeObjectURL(url), 60_000);
+      downloadBlob(blob, filename);
+      URL.revokeObjectURL(url);
     } catch (err: any) {
       toast({ title: "Could not open PDF", description: err.message, variant: "destructive" });
     }
   };
+
+  const getDocRef = (rec: any): string | null =>
+    rec?.url || rec?.fileUrl || rec?.orderUrl || rec?.judgmentUrl ||
+    rec?.documentUrl || rec?.filename || null;
+
+  const downloadBlob = (blob: Blob, filename: string) => {
+    const url = URL.createObjectURL(blob);
+    const safe = (filename || "document.pdf").replace(/[^a-zA-Z0-9._-]/g, "_");
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = safe.endsWith(".pdf") ? safe : `${safe}.pdf`;
+    a.rel = "noopener";
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    toast({ title: "PDF downloaded", description: a.download });
+    setTimeout(() => URL.revokeObjectURL(url), 60_000);
+  };
+
+  const fetchDocBlob = async (rec: any): Promise<{ blob: Blob; filename: string }> => {
+    const raw = getDocRef(rec);
+    if (!raw) throw new Error("No PDF attached to this record.");
+    if (!currentCnr) throw new Error("Missing CNR for document lookup.");
+    if (/^https?:\/\//i.test(raw)) {
+      const r = await fetch(raw);
+      if (!r.ok) throw new Error(`Upstream returned ${r.status}`);
+      const blob = await r.blob();
+      const filename = raw.split("/").pop() || "document.pdf";
+      return { blob, filename };
+    }
+    const resp = await fetch(`${SUPABASE_URL}/functions/v1/ecourts-track`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${session?.access_token || ""}`,
+      },
+      body: JSON.stringify({
+        action: "document-proxy",
+        cnrNumber: currentCnr,
+        searchParams: { filename: raw },
+      }),
+    });
+    if (!resp.ok) {
+      const err = await resp.json().catch(() => ({ error: "Failed to load document" }));
+      throw new Error(err.error || `Error ${resp.status}`);
+    }
+    const ctype = resp.headers.get("content-type") || "";
+    if (ctype.includes("application/json")) {
+      const data = await resp.json().catch(() => ({}));
+      throw new Error(data.error || "Document not available from eCourts.");
+    }
+    const blob = await resp.blob();
+    const filename = raw.split("/").pop() || "document.pdf";
+    return { blob, filename };
+  };
+
+  const openRecordDialog = async (record: any, kind: RecordKind) => {
+    setRecordDialog({ open: true, record, kind });
+    // Reset preview
+    setPdfPreview((prev) => {
+      if (prev.url) URL.revokeObjectURL(prev.url);
+      return { loading: false, url: null, blob: null, error: null, filename: "" };
+    });
+    if (!getDocRef(record)) return;
+    setPdfPreview({ loading: true, url: null, blob: null, error: null, filename: "" });
+    try {
+      const { blob, filename } = await fetchDocBlob(record);
+      const url = URL.createObjectURL(blob);
+      setPdfPreview({ loading: false, url, blob, error: null, filename });
+    } catch (err: any) {
+      setPdfPreview({ loading: false, url: null, blob: null, error: err.message || "Failed to load PDF", filename: "" });
+    }
+  };
+
+  const closeRecordDialog = () => {
+    setPdfPreview((prev) => {
+      if (prev.url) URL.revokeObjectURL(prev.url);
+      return { loading: false, url: null, blob: null, error: null, filename: "" };
+    });
+    setRecordDialog({ open: false, record: null, kind: null });
+  };
+
+  useEffect(() => {
+    return () => {
+      if (pdfPreview.url) URL.revokeObjectURL(pdfPreview.url);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const toggleDetailTab = (
     tab: "orders" | "hearings" | "judgments" | "ias" | "transfers",
@@ -601,16 +690,14 @@ const ECourtsPage = () => {
                                       {o.judge ? ` · ${o.judge}` : ""}
                                     </p>
                                   </div>
-                                  <div className="flex flex-col gap-1.5 shrink-0">
-                                    {(o.url || o.fileUrl || o.orderUrl || o.judgmentUrl || o.documentUrl || o.filename) && (
-                                      <button
-                                        type="button"
-                                        onClick={() => openDocProxy(o)}
-                                        className="text-xs flex items-center gap-1 text-secondary hover:underline"
-                                      >
-                                        <ExternalLink className="w-3 h-3" /> View PDF
-                                      </button>
-                                    )}
+                                   <div className="flex flex-col gap-1.5 shrink-0">
+                                     <button
+                                       type="button"
+                                       onClick={() => openRecordDialog(o, "order")}
+                                       className="text-xs flex items-center gap-1 text-secondary hover:underline"
+                                     >
+                                       <Eye className="w-3 h-3" /> View Details
+                                     </button>
                                     {(o.filename || o.orderUrl) && (
                                       <Button
                                         size="sm"
@@ -711,17 +798,21 @@ const ECourtsPage = () => {
                             hearingsFinal.map((h: any, i: number) => (
                               <div
                                 key={i}
-                                className="p-3 rounded-lg bg-background/50 border border-border/10"
+                                className="p-3 rounded-lg bg-background/50 border border-border/10 hover:border-secondary/30 cursor-pointer transition-colors"
+                                onClick={() => openRecordDialog(h, "hearing")}
                               >
-                                <div className="flex items-center justify-between">
+                                <div className="flex items-center justify-between gap-3">
                                   <p className="text-sm font-medium">
                                     {h.hearingDate || h.date || h.businessOnDate || h.businessDate || "Date N/A"}
                                   </p>
-                                  {(h.purpose || h.purposeOfListing) && (
-                                    <span className="text-xs px-2 py-0.5 rounded-full border border-border/30 text-muted-foreground">
-                                      {h.purpose || h.purposeOfListing}
-                                    </span>
-                                  )}
+                                  <div className="flex items-center gap-2 shrink-0">
+                                    {(h.purpose || h.purposeOfListing) && (
+                                      <span className="text-xs px-2 py-0.5 rounded-full border border-border/30 text-muted-foreground">
+                                        {h.purpose || h.purposeOfListing}
+                                      </span>
+                                    )}
+                                    <Eye className="w-3.5 h-3.5 text-muted-foreground" />
+                                  </div>
                                 </div>
                                 {h.judge && (
                                   <p className="text-xs text-muted-foreground mt-1">
@@ -762,15 +853,13 @@ const ECourtsPage = () => {
                                       {j.judge ? ` · ${j.judge}` : ""}
                                     </p>
                                   </div>
-                                  {(j.url || j.fileUrl || j.orderUrl || j.judgmentUrl || j.documentUrl || j.filename) && (
-                                    <button
-                                      type="button"
-                                      onClick={() => openDocProxy(j)}
-                                      className="text-xs flex items-center gap-1 text-secondary hover:underline shrink-0"
-                                    >
-                                      <ExternalLink className="w-3 h-3" /> View PDF
-                                    </button>
-                                  )}
+                                  <button
+                                    type="button"
+                                    onClick={() => openRecordDialog(j, "judgment")}
+                                    className="text-xs flex items-center gap-1 text-secondary hover:underline shrink-0"
+                                  >
+                                    <Eye className="w-3 h-3" /> View Details
+                                  </button>
                                 </div>
                               </div>
                             ))
@@ -944,6 +1033,96 @@ const ECourtsPage = () => {
           <span>Fetching from eCourts...</span>
         </div>
       )}
+
+      {/* Record Details + PDF Preview Dialog */}
+      <Dialog open={recordDialog.open} onOpenChange={(o) => { if (!o) closeRecordDialog(); }}>
+        <DialogContent className="max-w-5xl w-[95vw] max-h-[90vh] overflow-hidden flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="font-serif">
+              {(() => {
+                const r = recordDialog.record || {};
+                const k = recordDialog.kind;
+                if (k === "hearing") return `Hearing — ${firstValue(r.hearingDate, r.date, r.businessOnDate, r.businessDate, "Date N/A")}`;
+                if (k === "judgment") return firstValue(r.title, r.orderType, `Judgment dated ${firstValue(r.date, r.orderDate, r.judgmentDate, "—")}`);
+                return firstValue(r.title, r.orderName, r.orderType, `Order dated ${firstValue(r.date, r.orderDate, "—")}`);
+              })()}
+            </DialogTitle>
+            <DialogDescription>
+              Full details from eCourts {recordDialog.kind ? `· ${recordDialog.kind}` : ""}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 overflow-hidden flex-1 min-h-0">
+            {/* Details panel */}
+            <div className="overflow-y-auto pr-2 space-y-2 text-sm">
+              {(() => {
+                const r = recordDialog.record || {};
+                const rows: [string, string][] = [];
+                const push = (label: string, val: string) => { if (val) rows.push([label, val]); };
+                push("Date", firstValue(r.date, r.orderDate, r.judgmentDate, r.hearingDate, r.businessOnDate, r.businessDate));
+                push("Type", firstValue(r.orderType, r.type, r.judgmentType));
+                push("Title", firstValue(r.title, r.orderName, r.subject));
+                push("Judge", firstValue(r.judge, r.judgeName, r.presidingOfficer));
+                push("Purpose", firstValue(r.purpose, r.purposeOfListing));
+                push("Business / Outcome", firstValue(r.business, r.outcome, r.notes, r.remarks));
+                push("Party", firstValue(r.party, r.partyName));
+                push("Stage", firstValue(r.caseStage, r.stage));
+                push("Court", firstValue(r.courtName, r.court));
+                push("Filename", firstValue(r.filename, r.orderUrl, r.judgmentUrl, r.fileUrl, r.url));
+                if (!rows.length) {
+                  return <p className="text-muted-foreground italic">No additional metadata available for this record.</p>;
+                }
+                return rows.map(([label, val]) => (
+                  <div key={label} className="grid grid-cols-[120px_1fr] gap-3 py-1.5 border-b border-border/10 last:border-0">
+                    <span className="text-xs uppercase tracking-wide text-muted-foreground">{label}</span>
+                    <span className="text-sm break-words">{val}</span>
+                  </div>
+                ));
+              })()}
+            </div>
+
+            {/* PDF preview panel */}
+            <div className="rounded-lg border border-border/30 bg-background/50 overflow-hidden flex flex-col min-h-[300px]">
+              {pdfPreview.loading && (
+                <div className="flex-1 flex items-center justify-center gap-2 text-muted-foreground">
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                  <span className="text-sm">Loading PDF…</span>
+                </div>
+              )}
+              {!pdfPreview.loading && pdfPreview.url && (
+                <iframe
+                  src={pdfPreview.url}
+                  title="PDF preview"
+                  className="w-full h-[60vh] border-0"
+                />
+              )}
+              {!pdfPreview.loading && !pdfPreview.url && (
+                <div className="flex-1 flex items-center justify-center p-6 text-center">
+                  <p className="text-sm text-muted-foreground">
+                    {pdfPreview.error
+                      ? pdfPreview.error
+                      : getDocRef(recordDialog.record)
+                        ? "PDF preview unavailable."
+                        : "No PDF attached to this record."}
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={closeRecordDialog}>Close</Button>
+            <Button
+              onClick={() => {
+                if (pdfPreview.blob) downloadBlob(pdfPreview.blob, pdfPreview.filename || "document.pdf");
+              }}
+              disabled={!pdfPreview.blob}
+            >
+              <Download className="w-4 h-4 mr-1" /> Download PDF
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
