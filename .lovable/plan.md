@@ -1,77 +1,52 @@
-## Goal
+# Plan: Inline PDF preview + details dialog for Orders / Hearings / Judgments
 
-When a user logs in for the first time, give them a guided tour and pre-populated sample data so the app feels alive. Provide a single "Clear sample data" button (top-right) that wipes the sample data, hides itself forever, and never re-seeds.
+## Problem
+On the eCourts CNR result card, clicking "View PDF" inside the Orders, Hearings, and Judgments tabs immediately downloads the file and shows nothing on screen. Users expect to first see the record details and the PDF inline, with a separate Download button.
 
-## User Flow
+## Proposed Behavior
+Clicking a row (or its primary button) opens a modal dialog that contains:
+1. A details panel — all available metadata for that record (date, type/title, judge, purpose, business/outcome, party, IA number, etc.).
+2. An inline PDF preview (rendered via an `<iframe>` pointing to a blob URL fetched through the existing `document-proxy` edge function).
+3. A "Download PDF" button that saves the same blob to disk (current download behavior).
+4. A graceful fallback message if no PDF is attached or the proxy returns the "not found" JSON fallback.
 
-1. New user signs up → completes profile → lands on `/dashboard`.
-2. App detects "first login" (no sample seeded yet, no real data) → automatically seeds sample data tagged as sample, and launches a quick guided tour.
-3. Tour: 5–6 step overlay highlighting Dashboard widgets, Cases, Clients, Drafting, Research, and the Clear Sample Data button. User can skip or finish.
-4. A floating "Clear Sample Data" pill button appears top-right on every page while sample data is present.
-5. Clicking it shows a confirmation alert dialog. On confirm, all sample-tagged rows are deleted, the flag is flipped, and the button disappears for good — no future re-seeding even if the user deletes everything else.
+The current auto-download flow is removed from the row-level "View PDF" trigger; download remains available inside the dialog.
 
-## Sample Data Seeded
+## Implementation (frontend only — `src/pages/ECourts.tsx`)
 
-Lightweight, realistic Indian legal context, all marked `is_sample = true`:
-- 3 clients (e.g. "Sharma Industries Pvt Ltd", "Rajesh Kumar", "Mehta & Co.")
-- 3 cases (civil, criminal, corporate) linked to those clients with hearing dates
-- 4 tasks (2 due soon, 2 later) linked to cases
-- 2 calendar events (next hearing, client meeting)
-- 2 saved drafts (a notice and a contract)
-- 1 invoice + 1 billable hours entry
-- 2 search history entries
+1. Add state:
+   - `recordDialog: { open: boolean; record: any | null; kind: "order" | "hearing" | "judgment" | null }`
+   - `pdfPreview: { loading: boolean; url: string | null; error: string | null; filename: string }`
 
-## Schema Changes
+2. Refactor `openDocProxy`:
+   - Split into `fetchDocBlob(rec)` → returns `{ blob, filename }` or throws.
+   - Keep a `downloadBlob(blob, filename)` helper using the existing anchor-click technique.
 
-Add `is_sample boolean NOT NULL DEFAULT false` column to: `clients`, `cases`, `tasks`, `calendar_events`, `saved_drafts`, `invoices`, `billable_hours`, `search_history`, `hearings`, `case_notes`, `communication_log`.
+3. New `openRecordDialog(record, kind)`:
+   - Sets `recordDialog` open and triggers `fetchDocBlob` if the record has a file reference; stores the resulting `URL.createObjectURL(blob)` in `pdfPreview.url`.
+   - Revokes the object URL on dialog close / unmount.
 
-Add to `profiles`:
-- `onboarding_completed boolean NOT NULL DEFAULT false`
-- `sample_data_seeded boolean NOT NULL DEFAULT false`
-- `sample_data_cleared boolean NOT NULL DEFAULT false`
+4. Update the row buttons inside `orders`, `hearings`, `judgments` tab blocks:
+   - Replace the "View PDF" button with a "View Details" button that calls `openRecordDialog`.
+   - Hearings rows (which previously had no button) also become clickable to open details.
 
-The combination ensures: seed only when `sample_data_seeded = false AND sample_data_cleared = false`. Once cleared, never seed again.
+5. Add a `<Dialog>` (shadcn) at the end of the result card:
+   - Header: record title + date.
+   - Left/top panel: key/value details rendered from the normalized record fields (reuse `firstValue`).
+   - Right/bottom panel: 
+     - If `pdfPreview.loading`: spinner.
+     - If `pdfPreview.url`: `<iframe src={pdfPreview.url} className="w-full h-[60vh]" title="PDF preview" />`.
+     - If `pdfPreview.error` or no file: explanatory text.
+   - Footer: "Download PDF" button (enabled only when blob is loaded) + Close.
 
-## Backend
-
-Two new edge functions (JWT-validated):
-- `seed-sample-data` — inserts the sample rows for `auth.uid()`, sets `sample_data_seeded = true`. Idempotent: no-op if already seeded or cleared.
-- `clear-sample-data` — deletes all rows where `user_id = auth.uid() AND is_sample = true` across the tagged tables, sets `sample_data_cleared = true`.
-
-## Frontend
-
-New components:
-- `src/components/onboarding/OnboardingTour.tsx` — lightweight step-based overlay (no heavy lib; custom tooltip + spotlight using `position: fixed` and refs / data-attributes like `data-tour="dashboard-stats"`).
-- `src/components/onboarding/ClearSampleDataButton.tsx` — fixed top-right pill button with AlertDialog confirmation. Reads `profiles.sample_data_seeded && !sample_data_cleared`.
-- `src/hooks/useOnboarding.ts` — fetches profile flags, exposes `shouldSeed`, `shouldShowTour`, `hasSampleData`, and trigger helpers.
-
-Wiring:
-- In `AppLayout.tsx`: mount `ClearSampleDataButton` and `OnboardingTour`. On first load after login, if `shouldSeed`, invoke `seed-sample-data`, then mark `onboarding_completed = false` so the tour starts.
-- Tour anchors via `data-tour="..."` attributes added to existing nav items and dashboard widgets — no visual change to those components.
-
-## Edge Cases
-
-- User signs up, never sees tour (closes tab) → next login still triggers because `onboarding_completed = false`.
-- Sample data filtered out of analytics/win-rate etc.? Not needed; sample rows look like normal user data and counts of "active cases" will simply include them until cleared.
-- User manually deletes a sample case via Cases page → fine; remaining sample rows still there, button still visible until they click Clear.
-- After Clear: button gone, tour never reshows (`onboarding_completed = true` set when tour ends OR when Clear is pressed).
-
-## Files
-
-New:
-- `supabase/migrations/<ts>_sample_data_columns.sql`
-- `supabase/functions/seed-sample-data/index.ts`
-- `supabase/functions/clear-sample-data/index.ts`
-- `src/components/onboarding/OnboardingTour.tsx`
-- `src/components/onboarding/ClearSampleDataButton.tsx`
-- `src/hooks/useOnboarding.ts`
-
-Edited:
-- `src/components/AppLayout.tsx` — mount onboarding pieces
-- `src/pages/Dashboard.tsx`, `src/components/AppSidebar.tsx` — add `data-tour` anchors
-- `supabase/config.toml` — register two new functions
+6. Existing "Analyze with AI" button on orders stays in the row (or also moves into the dialog — keep in row for minimal disruption).
 
 ## Out of Scope
+- No edge function changes (`ecourts-track` already streams the PDF via `document-proxy`).
+- No backend, schema, or auth changes.
+- No styling overhaul beyond the new dialog, which uses existing semantic tokens.
 
-- No re-seed option once cleared (per requirement).
-- No admin-side toggle for sample data.
+## QA
+- CNR `DLCT110002062020`: open Orders tab → click a row → dialog shows details and embedded PDF; Download button saves the file; close revokes blob URL.
+- Record without a PDF (e.g. a hearing) shows details with a "No PDF attached" message.
+- Proxy fallback (404) shows the error message inside the preview panel without breaking the dialog.
