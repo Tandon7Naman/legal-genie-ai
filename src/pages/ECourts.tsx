@@ -1033,6 +1033,96 @@ const ECourtsPage = () => {
           <span>Fetching from eCourts...</span>
         </div>
       )}
+
+      {/* Record Details + PDF Preview Dialog */}
+      <Dialog open={recordDialog.open} onOpenChange={(o) => { if (!o) closeRecordDialog(); }}>
+        <DialogContent className="max-w-5xl w-[95vw] max-h-[90vh] overflow-hidden flex flex-col">
+          <DialogHeader>
+            <DialogTitle className="font-serif">
+              {(() => {
+                const r = recordDialog.record || {};
+                const k = recordDialog.kind;
+                if (k === "hearing") return `Hearing — ${firstValue(r.hearingDate, r.date, r.businessOnDate, r.businessDate, "Date N/A")}`;
+                if (k === "judgment") return firstValue(r.title, r.orderType, `Judgment dated ${firstValue(r.date, r.orderDate, r.judgmentDate, "—")}`);
+                return firstValue(r.title, r.orderName, r.orderType, `Order dated ${firstValue(r.date, r.orderDate, "—")}`);
+              })()}
+            </DialogTitle>
+            <DialogDescription>
+              Full details from eCourts {recordDialog.kind ? `· ${recordDialog.kind}` : ""}
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 overflow-hidden flex-1 min-h-0">
+            {/* Details panel */}
+            <div className="overflow-y-auto pr-2 space-y-2 text-sm">
+              {(() => {
+                const r = recordDialog.record || {};
+                const rows: [string, string][] = [];
+                const push = (label: string, val: string) => { if (val) rows.push([label, val]); };
+                push("Date", firstValue(r.date, r.orderDate, r.judgmentDate, r.hearingDate, r.businessOnDate, r.businessDate));
+                push("Type", firstValue(r.orderType, r.type, r.judgmentType));
+                push("Title", firstValue(r.title, r.orderName, r.subject));
+                push("Judge", firstValue(r.judge, r.judgeName, r.presidingOfficer));
+                push("Purpose", firstValue(r.purpose, r.purposeOfListing));
+                push("Business / Outcome", firstValue(r.business, r.outcome, r.notes, r.remarks));
+                push("Party", firstValue(r.party, r.partyName));
+                push("Stage", firstValue(r.caseStage, r.stage));
+                push("Court", firstValue(r.courtName, r.court));
+                push("Filename", firstValue(r.filename, r.orderUrl, r.judgmentUrl, r.fileUrl, r.url));
+                if (!rows.length) {
+                  return <p className="text-muted-foreground italic">No additional metadata available for this record.</p>;
+                }
+                return rows.map(([label, val]) => (
+                  <div key={label} className="grid grid-cols-[120px_1fr] gap-3 py-1.5 border-b border-border/10 last:border-0">
+                    <span className="text-xs uppercase tracking-wide text-muted-foreground">{label}</span>
+                    <span className="text-sm break-words">{val}</span>
+                  </div>
+                ));
+              })()}
+            </div>
+
+            {/* PDF preview panel */}
+            <div className="rounded-lg border border-border/30 bg-background/50 overflow-hidden flex flex-col min-h-[300px]">
+              {pdfPreview.loading && (
+                <div className="flex-1 flex items-center justify-center gap-2 text-muted-foreground">
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                  <span className="text-sm">Loading PDF…</span>
+                </div>
+              )}
+              {!pdfPreview.loading && pdfPreview.url && (
+                <iframe
+                  src={pdfPreview.url}
+                  title="PDF preview"
+                  className="w-full h-[60vh] border-0"
+                />
+              )}
+              {!pdfPreview.loading && !pdfPreview.url && (
+                <div className="flex-1 flex items-center justify-center p-6 text-center">
+                  <p className="text-sm text-muted-foreground">
+                    {pdfPreview.error
+                      ? pdfPreview.error
+                      : getDocRef(recordDialog.record)
+                        ? "PDF preview unavailable."
+                        : "No PDF attached to this record."}
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={closeRecordDialog}>Close</Button>
+            <Button
+              onClick={() => {
+                if (pdfPreview.blob) downloadBlob(pdfPreview.blob, pdfPreview.filename || "document.pdf");
+              }}
+              disabled={!pdfPreview.blob}
+            >
+              <Download className="w-4 h-4 mr-1" /> Download PDF
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
