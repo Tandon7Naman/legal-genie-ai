@@ -690,16 +690,14 @@ const ECourtsPage = () => {
                                       {o.judge ? ` · ${o.judge}` : ""}
                                     </p>
                                   </div>
-                                  <div className="flex flex-col gap-1.5 shrink-0">
-                                    {(o.url || o.fileUrl || o.orderUrl || o.judgmentUrl || o.documentUrl || o.filename) && (
-                                      <button
-                                        type="button"
-                                        onClick={() => openDocProxy(o)}
-                                        className="text-xs flex items-center gap-1 text-secondary hover:underline"
-                                      >
-                                        <ExternalLink className="w-3 h-3" /> View PDF
-                                      </button>
-                                    )}
+                                   <div className="flex flex-col gap-1.5 shrink-0">
+                                     <button
+                                       type="button"
+                                       onClick={() => openRecordDialog(o, "order")}
+                                       className="text-xs flex items-center gap-1 text-secondary hover:underline"
+                                     >
+                                       <Eye className="w-3 h-3" /> View Details
+                                     </button>
                                     {(o.filename || o.orderUrl) && (
                                       <Button
                                         size="sm"
@@ -800,17 +798,21 @@ const ECourtsPage = () => {
                             hearingsFinal.map((h: any, i: number) => (
                               <div
                                 key={i}
-                                className="p-3 rounded-lg bg-background/50 border border-border/10"
+                                className="p-3 rounded-lg bg-background/50 border border-border/10 hover:border-secondary/30 cursor-pointer transition-colors"
+                                onClick={() => openRecordDialog(h, "hearing")}
                               >
-                                <div className="flex items-center justify-between">
+                                <div className="flex items-center justify-between gap-3">
                                   <p className="text-sm font-medium">
                                     {h.hearingDate || h.date || h.businessOnDate || h.businessDate || "Date N/A"}
                                   </p>
-                                  {(h.purpose || h.purposeOfListing) && (
-                                    <span className="text-xs px-2 py-0.5 rounded-full border border-border/30 text-muted-foreground">
-                                      {h.purpose || h.purposeOfListing}
-                                    </span>
-                                  )}
+                                  <div className="flex items-center gap-2 shrink-0">
+                                    {(h.purpose || h.purposeOfListing) && (
+                                      <span className="text-xs px-2 py-0.5 rounded-full border border-border/30 text-muted-foreground">
+                                        {h.purpose || h.purposeOfListing}
+                                      </span>
+                                    )}
+                                    <Eye className="w-3.5 h-3.5 text-muted-foreground" />
+                                  </div>
                                 </div>
                                 {h.judge && (
                                   <p className="text-xs text-muted-foreground mt-1">
@@ -851,15 +853,13 @@ const ECourtsPage = () => {
                                       {j.judge ? ` · ${j.judge}` : ""}
                                     </p>
                                   </div>
-                                  {(j.url || j.fileUrl || j.orderUrl || j.judgmentUrl || j.documentUrl || j.filename) && (
-                                    <button
-                                      type="button"
-                                      onClick={() => openDocProxy(j)}
-                                      className="text-xs flex items-center gap-1 text-secondary hover:underline shrink-0"
-                                    >
-                                      <ExternalLink className="w-3 h-3" /> View PDF
-                                    </button>
-                                  )}
+                                  <button
+                                    type="button"
+                                    onClick={() => openRecordDialog(j, "judgment")}
+                                    className="text-xs flex items-center gap-1 text-secondary hover:underline shrink-0"
+                                  >
+                                    <Eye className="w-3 h-3" /> View Details
+                                  </button>
                                 </div>
                               </div>
                             ))
