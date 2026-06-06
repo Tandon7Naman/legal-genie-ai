@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,9 +16,106 @@ import {
   ExternalLink, Sparkles, Briefcase, Copy, X, RotateCw, Download, Eye,
 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
+import * as pdfjsLib from "pdfjs-dist";
+import pdfWorkerUrl from "pdfjs-dist/build/pdf.worker.min.mjs?url";
 
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorkerUrl;
+
+type PdfCanvasPreviewProps = {
+  blob: Blob;
+  filename: string;
+  onError: (message: string) => void;
+};
+
+const PdfCanvasPreview = ({ blob, filename, onError }: PdfCanvasPreviewProps) => {
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const renderTaskRef = useRef<any>(null);
+  const [pageNumber, setPageNumber] = useState(1);
+  const [pageCount, setPageCount] = useState(1);
+  const [rendering, setRendering] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    let documentTask: any;
+    let pdfDocument: any;
+
+    const renderPdf = async () => {
+      setRendering(true);
+      try {
+        renderTaskRef.current?.cancel?.();
+        const data = await blob.arrayBuffer();
+        documentTask = pdfjsLib.getDocument({ data });
+        pdfDocument = await documentTask.promise;
+        if (cancelled) return;
+
+        const totalPages = pdfDocument.numPages || 1;
+        const safePage = Math.min(Math.max(pageNumber, 1), totalPages);
+        if (safePage !== pageNumber) {
+          setPageNumber(safePage);
+          return;
+        }
+        setPageCount(totalPages);
+
+        const page = await pdfDocument.getPage(safePage);
+        if (cancelled) return;
+        const viewport = page.getViewport({ scale: 1.35 });
+        const canvas = canvasRef.current;
+        const context = canvas?.getContext("2d");
+        if (!canvas || !context) throw new Error("PDF canvas is unavailable.");
+
+        const pixelRatio = window.devicePixelRatio || 1;
+        canvas.width = Math.floor(viewport.width * pixelRatio);
+        canvas.height = Math.floor(viewport.height * pixelRatio);
+        canvas.style.width = `${Math.floor(viewport.width)}px`;
+        canvas.style.height = `${Math.floor(viewport.height)}px`;
+        context.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
+
+        renderTaskRef.current = page.render({ canvasContext: context, viewport });
+        await renderTaskRef.current.promise;
+        if (!cancelled) setRendering(false);
+      } catch (err: any) {
+        if (err?.name === "RenderingCancelledException") return;
+        if (!cancelled) {
+          setRendering(false);
+          onError(err?.message || "PDF preview failed. Please retry or download the PDF.");
+        }
+      }
+    };
+
+    renderPdf();
+
+    return () => {
+      cancelled = true;
+      renderTaskRef.current?.cancel?.();
+      documentTask?.destroy?.();
+      pdfDocument?.destroy?.();
+    };
+  }, [blob, pageNumber, onError]);
+
+  return (
+    <div className="flex min-h-0 flex-1 flex-col bg-muted/20">
+      <div className="flex items-center justify-between gap-3 border-b border-border/20 px-3 py-2 text-xs text-muted-foreground">
+        <span className="truncate">{filename || "document.pdf"}</span>
+        <div className="flex shrink-0 items-center gap-2">
+          <Button variant="outline" size="sm" className="h-7 px-2 text-xs" onClick={() => setPageNumber((p) => Math.max(1, p - 1))} disabled={rendering || pageNumber <= 1}>Prev</Button>
+          <span>Page {pageNumber} / {pageCount}</span>
+          <Button variant="outline" size="sm" className="h-7 px-2 text-xs" onClick={() => setPageNumber((p) => Math.min(pageCount, p + 1))} disabled={rendering || pageNumber >= pageCount}>Next</Button>
+        </div>
+      </div>
+      <div className="relative flex-1 overflow-auto p-3">
+        {rendering && (
+          <div className="absolute inset-0 z-10 flex items-center justify-center gap-2 bg-background/80 text-muted-foreground">
+            <Loader2 className="h-5 w-5 animate-spin" />
+            <span className="text-sm">Rendering PDF…</span>
+          </div>
+        )}
+        <canvas ref={canvasRef} className="mx-auto max-w-full rounded border border-border/20 bg-background shadow-sm" />
+      </div>
+    </div>
+  );
+};
 
 const ECourtsPage = () => {
   const { session } = useAuth();
