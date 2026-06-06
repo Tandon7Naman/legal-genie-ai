@@ -403,7 +403,7 @@ const ECourtsPage = () => {
     return { blob, filename };
   };
 
-  const loadPdfPreview = useCallback(async (record: any) => {
+  const loadPdfPreview = async (record: any) => {
     if (!getDocRef(record)) {
       setPdfPreview({ loading: false, url: null, blob: null, error: "No PDF attached to this record.", filename: "" });
       return;
@@ -418,7 +418,7 @@ const ECourtsPage = () => {
     } catch (err: any) {
       setPdfPreview({ loading: false, url: null, blob: null, error: err.message || "Failed to load PDF", filename: "" });
     }
-  }, [currentCnr, session?.access_token]);
+  };
 
   const openRecordDialog = async (record: any, kind: RecordKind) => {
     setRecordDialog({ open: true, record, kind });
