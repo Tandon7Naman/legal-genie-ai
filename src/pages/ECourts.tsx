@@ -139,23 +139,6 @@ const ECourtsPage = () => {
   const [pdfPreview, setPdfPreview] = useState<{
     loading: boolean; url: string | null; blob: Blob | null; error: string | null; filename: string;
   }>({ loading: false, url: null, blob: null, error: null, filename: "" });
-  const loadPdfPreview = useCallback(async (record: any) => {
-    if (!getDocRef(record)) {
-      setPdfPreview({ loading: false, url: null, blob: null, error: "No PDF attached to this record.", filename: "" });
-      return;
-    }
-    setPdfPreview((prev) => {
-      if (prev.url) URL.revokeObjectURL(prev.url);
-      return { loading: true, url: null, blob: null, error: null, filename: "" };
-    });
-    try {
-      const { blob, filename } = await fetchDocBlob(record);
-      const url = URL.createObjectURL(blob);
-      setPdfPreview({ loading: false, url, blob, error: null, filename });
-    } catch (err: any) {
-      setPdfPreview({ loading: false, url: null, blob: null, error: err.message || "Failed to load PDF", filename: "" });
-    }
-  }, [currentCnr, session?.access_token]);
 
   // Search fields
   const [searchQuery, setSearchQuery] = useState("");
