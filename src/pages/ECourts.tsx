@@ -1198,22 +1198,32 @@ const ECourtsPage = () => {
                   <span className="text-sm">Loading PDF…</span>
                 </div>
               )}
-              {!pdfPreview.loading && pdfPreview.url && (
-                <iframe
-                  src={pdfPreview.url}
-                  title="PDF preview"
-                  className="w-full h-[60vh] border-0"
+              {!pdfPreview.loading && pdfPreview.blob && !pdfPreview.error && (
+                <PdfCanvasPreview
+                  blob={pdfPreview.blob}
+                  filename={pdfPreview.filename}
+                  onError={handlePdfRenderError}
                 />
               )}
-              {!pdfPreview.loading && !pdfPreview.url && (
-                <div className="flex-1 flex items-center justify-center p-6 text-center">
-                  <p className="text-sm text-muted-foreground">
+              {!pdfPreview.loading && (!pdfPreview.blob || pdfPreview.error) && (
+                <div className="flex-1 flex flex-col items-center justify-center gap-3 p-6 text-center">
+                  <p className="max-w-sm text-sm text-muted-foreground">
                     {pdfPreview.error
                       ? pdfPreview.error
                       : getDocRef(recordDialog.record)
                         ? "PDF preview unavailable."
                         : "No PDF attached to this record."}
                   </p>
+                  {getDocRef(recordDialog.record) && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => loadPdfPreview(recordDialog.record)}
+                    >
+                      <RefreshCw className="w-4 h-4 mr-2" /> Retry PDF
+                    </Button>
+                  )}
                 </div>
               )}
             </div>
@@ -1221,6 +1231,12 @@ const ECourtsPage = () => {
 
           <DialogFooter className="gap-2">
             <Button variant="outline" onClick={closeRecordDialog}>Close</Button>
+            {getDocRef(recordDialog.record) && (
+              <Button variant="outline" onClick={() => loadPdfPreview(recordDialog.record)} disabled={pdfPreview.loading}>
+                {pdfPreview.loading ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <RefreshCw className="w-4 h-4 mr-1" />}
+                Retry PDF
+              </Button>
+            )}
             <Button
               onClick={() => {
                 if (pdfPreview.blob) downloadBlob(pdfPreview.blob, pdfPreview.filename || "document.pdf");
