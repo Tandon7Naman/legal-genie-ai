@@ -562,6 +562,10 @@ const ECourtsPage = () => {
         : "bg-background/50 text-foreground border-border/30 hover:border-secondary/40 hover:text-foreground"
     }`;
 
+  const handlePdfRenderError = useCallback((message: string) => {
+    setPdfPreview((prev) => ({ ...prev, error: message }));
+  }, []);
+
   return (
     <div className="p-6 max-w-5xl mx-auto">
       
