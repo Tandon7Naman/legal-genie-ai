@@ -403,6 +403,23 @@ const ECourtsPage = () => {
     return { blob, filename };
   };
 
+  const loadPdfPreview = useCallback(async (record: any) => {
+    if (!getDocRef(record)) {
+      setPdfPreview({ loading: false, url: null, blob: null, error: "No PDF attached to this record.", filename: "" });
+      return;
+    }
+    setPdfPreview((prev) => {
+      if (prev.url) URL.revokeObjectURL(prev.url);
+      return { loading: true, url: null, blob: null, error: null, filename: "" };
+    });
+    try {
+      const { blob, filename } = await fetchDocBlob(record);
+      setPdfPreview({ loading: false, url: null, blob, error: null, filename });
+    } catch (err: any) {
+      setPdfPreview({ loading: false, url: null, blob: null, error: err.message || "Failed to load PDF", filename: "" });
+    }
+  }, [currentCnr, session?.access_token]);
+
   const openRecordDialog = async (record: any, kind: RecordKind) => {
     setRecordDialog({ open: true, record, kind });
     setPdfPreview((prev) => {
