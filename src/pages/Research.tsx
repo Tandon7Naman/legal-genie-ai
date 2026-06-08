@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -9,10 +9,15 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { motion } from "framer-motion";
-import { Search, Loader2, History, Sparkles, FileSearch, Filter, Copy, Check, Trash2 } from "lucide-react";
+import { Search, Loader2, History, Sparkles, FileSearch, Filter, Copy, Check, Trash2, BookOpen, BookmarkPlus, Scale, GraduationCap } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { SmartSuggestions } from "@/components/research/SmartSuggestions";
 import { SourceQualityPanel } from "@/components/research/SourceQualityPanel";
+import { ModeToggle, type ResearchMode } from "@/components/research/ModeToggle";
+import { SaveToCollectionDialog } from "@/components/research/SaveToCollectionDialog";
+import { FlashcardsDialog } from "@/components/research/FlashcardsDialog";
+import { IracBriefDialog } from "@/components/research/IracBriefDialog";
+import { StatuteSimplifier } from "@/components/research/StatuteSimplifier";
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 
@@ -57,7 +62,7 @@ async function streamFromEdge({
 }
 
 const ResearchPage = () => {
-  const { user, session } = useAuth();
+  const { user, session, roles } = useAuth();
   const { toast } = useToast();
 
   const [query, setQuery] = useState("");
@@ -74,8 +79,45 @@ const ResearchPage = () => {
   const [searchHistory, setSearchHistory] = useState<{ id: string; query_text: string; query_type: string; created_at: string }[]>([]);
   const [historyLoaded, setHistoryLoaded] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [mode, setMode] = useState<ResearchMode>("professional");
+  const [followups, setFollowups] = useState<string[]>([]);
+  const [saveOpen, setSaveOpen] = useState(false);
+  const [flashOpen, setFlashOpen] = useState(false);
+  const [briefOpen, setBriefOpen] = useState(false);
 
   const getToken = () => session?.access_token || "";
+  const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+
+  // Load research mode preference (default by role)
+  useEffect(() => {
+    if (!user) return;
+    supabase.from("user_preferences").select("research_mode").eq("user_id", user.id).maybeSingle().then(({ data }) => {
+      if (data?.research_mode === "student" || data?.research_mode === "professional") {
+        setMode(data.research_mode);
+      } else if (roles.includes("student")) {
+        setMode("student");
+      }
+    });
+  }, [user, roles]);
+
+  const updateMode = async (m: ResearchMode) => {
+    setMode(m);
+    if (!user) return;
+    await supabase.from("user_preferences").upsert({ user_id: user.id, research_mode: m }, { onConflict: "user_id" });
+  };
+
+  const fetchFollowups = async (q: string, r: string) => {
+    try {
+      const resp = await fetch(`${SUPABASE_URL}/functions/v1/research-followups`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${getToken()}` },
+        body: JSON.stringify({ query: q, result: r, mode }),
+      });
+      if (!resp.ok) return;
+      const data = await resp.json();
+      setFollowups(Array.isArray(data.suggestions) ? data.suggestions : []);
+    } catch {}
+  };
 
   const loadHistory = async () => {
     if (historyLoaded) return;
@@ -105,6 +147,7 @@ const ResearchPage = () => {
     if (!query.trim()) return;
     setLoading(true);
     setResult("");
+    setFollowups([]);
     let accumulated = "";
     const filters: Record<string, string> = {};
     if (courtLevel) filters.courtLevel = courtLevel;
@@ -116,9 +159,9 @@ const ResearchPage = () => {
     try {
       await streamFromEdge({
         functionName: "legal-search",
-        body: { query, filters: Object.keys(filters).length > 0 ? filters : undefined },
+        body: { query, filters: Object.keys(filters).length > 0 ? filters : undefined, mode },
         onDelta: (chunk) => { accumulated += chunk; setResult(accumulated); },
-        onDone: () => setLoading(false),
+        onDone: () => { setLoading(false); fetchFollowups(query, accumulated); },
         token: getToken(),
       });
       saveToHistory(query, "search", filters);
@@ -132,13 +175,14 @@ const ResearchPage = () => {
     if (!caseDetails.trim()) return;
     setLoading(true);
     setResult("");
+    setFollowups([]);
     let accumulated = "";
     try {
       await streamFromEdge({
         functionName: "case-analyze",
-        body: { caseDetails },
+        body: { caseDetails, mode },
         onDelta: (chunk) => { accumulated += chunk; setResult(accumulated); },
-        onDone: () => setLoading(false),
+        onDone: () => { setLoading(false); fetchFollowups(caseDetails.slice(0, 500), accumulated); },
         token: getToken(),
       });
       saveToHistory(caseDetails.slice(0, 200), "analyze", {});
@@ -157,6 +201,15 @@ const ResearchPage = () => {
 
   return (
     <div className="p-6 max-w-4xl mx-auto">
+      <div className="flex items-center justify-between mb-4">
+        <div>
+          <h1 className="font-serif text-2xl font-semibold">Research</h1>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            {mode === "student" ? "Student mode — IRAC walkthroughs, plain-English statutes, flashcards." : "Professional mode — grounded case law, IRAC briefs, save to collections."}
+          </p>
+        </div>
+        <ModeToggle mode={mode} onChange={updateMode} />
+      </div>
       <Tabs value={activeTab} onValueChange={(v) => { setActiveTab(v); setResult(""); }}>
         <TabsList className="bg-card/50 border border-border/20 mb-6">
           <TabsTrigger value="search" className="data-[state=active]:bg-secondary data-[state=active]:text-secondary-foreground">
@@ -164,6 +217,9 @@ const ResearchPage = () => {
           </TabsTrigger>
           <TabsTrigger value="analyze" className="data-[state=active]:bg-secondary data-[state=active]:text-secondary-foreground">
             <FileSearch className="w-4 h-4 mr-2" /> Case Analysis
+          </TabsTrigger>
+          <TabsTrigger value="statute" className="data-[state=active]:bg-secondary data-[state=active]:text-secondary-foreground">
+            <BookOpen className="w-4 h-4 mr-2" /> Statute Simplifier
           </TabsTrigger>
           <TabsTrigger value="history" className="data-[state=active]:bg-secondary data-[state=active]:text-secondary-foreground" onClick={loadHistory}>
             <History className="w-4 h-4 mr-2" /> History
@@ -246,6 +302,10 @@ const ResearchPage = () => {
               Analyze Case
             </Button>
           </motion.div>
+        </TabsContent>
+
+        <TabsContent value="statute">
+          <StatuteSimplifier token={getToken()} />
         </TabsContent>
 
         <TabsContent value="history">
