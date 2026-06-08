@@ -29,7 +29,7 @@ serve(async (req) => {
       });
     }
 
-    const { caseDetails } = await req.json();
+    const { caseDetails, mode } = await req.json();
     if (typeof caseDetails !== "string" || caseDetails.length === 0 || caseDetails.length > 100_000) {
       return new Response(JSON.stringify({ error: "caseDetails must be a string up to 100000 chars" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -38,7 +38,18 @@ serve(async (req) => {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) { console.error("LOVABLE_API_KEY is not configured"); throw new Error("Service temporarily unavailable"); }
 
-    const systemPrompt = `You are a senior Indian litigation strategist with decades of experience. Analyze the provided case details thoroughly.
+    const isStudent = mode === "student";
+    const systemPrompt = isStudent ? `You are an Indian law professor guiding a student through case analysis. Use clear language and IRAC.
+
+Sections:
+- **Facts Summary**
+- **Issues Identified**
+- **Applicable Rules** (statutes + landmark cases, explained simply)
+- **Application (IRAC)** — apply rules to facts
+- **Conclusion** — most likely legal outcome with reasoning
+- **Learning Points** — concepts to revise
+
+Do not predict win/loss probabilities; focus on legal reasoning.` : `You are a senior Indian litigation strategist with decades of experience. Analyze the provided case details thoroughly.
 
 Provide your analysis in these sections:
 - **Case Summary** — Brief overview of the facts and issues

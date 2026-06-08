@@ -29,7 +29,7 @@ serve(async (req) => {
       });
     }
 
-    const { query, filters } = await req.json();
+    const { query, filters, mode } = await req.json();
     if (typeof query !== "string" || query.length === 0 || query.length > 10_000) {
       return new Response(JSON.stringify({ error: "query must be a string up to 10000 chars" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -45,7 +45,17 @@ serve(async (req) => {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) { console.error("LOVABLE_API_KEY is not configured"); throw new Error("Service temporarily unavailable"); }
 
-    const systemPrompt = `You are an expert Indian legal research assistant. You provide detailed, accurate legal analysis grounded in Indian law.
+    const isStudent = mode === "student";
+    const systemPrompt = isStudent ? `You are a friendly Indian law tutor for students. Provide accurate, grounded answers using simple language, definitions for jargon, and study-friendly structure.
+
+Format your response with these sections:
+- **Concepts Covered** (one-line bullets of key terms)
+- **Relevant Statutes & Sections** (with plain-English meaning)
+- **Landmark Cases** (Party v Party, Year, Court — explain the ratio simply)
+- **IRAC Walkthrough** (Issue / Rule / Application / Conclusion)
+- **Exam Tips** (what to remember)
+
+If a citation is uncertain, say so clearly.` : `You are an expert Indian legal research assistant. You provide detailed, accurate legal analysis grounded in Indian law.
 
 When given a legal query, you MUST:
 1. Identify relevant Indian statutes (IPC, CrPC, CPC, Constitution of India, specific Acts)
