@@ -389,7 +389,7 @@ const ResearchPage = () => {
                       key={i}
                       onClick={() => {
                         if (activeTab === "analyze") { setCaseDetails(f); }
-                        else { setQuery(f); setActiveTab("search"); setTimeout(() => handleSearchFromText(f), 0); }
+                        else { setQuery(f); setActiveTab("search"); }
                       }}
                       className="text-xs px-3 py-1.5 rounded-full bg-card border border-border/30 hover:border-secondary/40 hover:text-secondary transition-colors"
                     >
