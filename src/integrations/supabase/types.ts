@@ -641,6 +641,112 @@ export type Database = {
         }
         Relationships: []
       }
+      research_briefs: {
+        Row: {
+          case_id: string | null
+          created_at: string
+          id: string
+          irac: Json
+          source_query: string | null
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          case_id?: string | null
+          created_at?: string
+          id?: string
+          irac: Json
+          source_query?: string | null
+          title: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          case_id?: string | null
+          created_at?: string
+          id?: string
+          irac?: Json
+          source_query?: string | null
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "research_briefs_case_id_fkey"
+            columns: ["case_id"]
+            isOneToOne: false
+            referencedRelation: "cases"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      research_collection_items: {
+        Row: {
+          citations: Json | null
+          collection_id: string
+          content: string
+          created_at: string
+          id: string
+          source_query: string | null
+          title: string | null
+          user_id: string
+        }
+        Insert: {
+          citations?: Json | null
+          collection_id: string
+          content: string
+          created_at?: string
+          id?: string
+          source_query?: string | null
+          title?: string | null
+          user_id: string
+        }
+        Update: {
+          citations?: Json | null
+          collection_id?: string
+          content?: string
+          created_at?: string
+          id?: string
+          source_query?: string | null
+          title?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "research_collection_items_collection_id_fkey"
+            columns: ["collection_id"]
+            isOneToOne: false
+            referencedRelation: "research_collections"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      research_collections: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       saved_drafts: {
         Row: {
           content: string
@@ -727,6 +833,36 @@ export type Database = {
         }
         Relationships: []
       }
+      study_flashcards: {
+        Row: {
+          answer: string
+          created_at: string
+          deck_name: string
+          id: string
+          question: string
+          source_query: string | null
+          user_id: string
+        }
+        Insert: {
+          answer: string
+          created_at?: string
+          deck_name?: string
+          id?: string
+          question: string
+          source_query?: string | null
+          user_id: string
+        }
+        Update: {
+          answer?: string
+          created_at?: string
+          deck_name?: string
+          id?: string
+          question?: string
+          source_query?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       tasks: {
         Row: {
           case_id: string
@@ -800,6 +936,7 @@ export type Database = {
           accent_color: string
           created_at: string
           id: string
+          research_mode: string
           theme: string
           updated_at: string
           user_id: string
@@ -808,6 +945,7 @@ export type Database = {
           accent_color?: string
           created_at?: string
           id?: string
+          research_mode?: string
           theme?: string
           updated_at?: string
           user_id: string
@@ -816,6 +954,7 @@ export type Database = {
           accent_color?: string
           created_at?: string
           id?: string
+          research_mode?: string
           theme?: string
           updated_at?: string
           user_id?: string
