@@ -35,8 +35,12 @@ const PdfCanvasPreview = ({ blob, filename, onError }: PdfCanvasPreviewProps) =>
   const [pageNumber, setPageNumber] = useState(1);
   const [pageCount, setPageCount] = useState(1);
   const [rendering, setRendering] = useState(true);
+  const [viewMode, setViewMode] = useState<"single" | "scroll">("single");
+  const scrollContainerRef = useRef<HTMLDivElement | null>(null);
+  const [scrollRendering, setScrollRendering] = useState(false);
 
   useEffect(() => {
+    if (viewMode !== "single") return;
     let cancelled = false;
     let documentTask: any;
     let pdfDocument: any;
@@ -92,27 +96,136 @@ const PdfCanvasPreview = ({ blob, filename, onError }: PdfCanvasPreviewProps) =>
       documentTask?.destroy?.();
       pdfDocument?.destroy?.();
     };
-  }, [blob, pageNumber, onError]);
+  }, [blob, pageNumber, onError, viewMode]);
+
+  // Scroll-all mode: render every page sequentially into its own canvas
+  useEffect(() => {
+    if (viewMode !== "scroll") return;
+    let cancelled = false;
+    let documentTask: any;
+    let pdfDocument: any;
+    const tasks: any[] = [];
+
+    const renderAll = async () => {
+      setScrollRendering(true);
+      try {
+        const data = await blob.arrayBuffer();
+        documentTask = pdfjsLib.getDocument({ data });
+        pdfDocument = await documentTask.promise;
+        if (cancelled) return;
+
+        const totalPages = pdfDocument.numPages || 1;
+        setPageCount(totalPages);
+
+        const container = scrollContainerRef.current;
+        if (!container) return;
+        // Clear any prior pages
+        container.innerHTML = "";
+
+        for (let i = 1; i <= totalPages; i++) {
+          if (cancelled) return;
+          const page = await pdfDocument.getPage(i);
+          const viewport = page.getViewport({ scale: 1.35 });
+
+          const wrapper = document.createElement("div");
+          wrapper.className = "mb-6";
+          const heading = document.createElement("div");
+          heading.className = "mb-2 text-xs font-medium text-muted-foreground";
+          heading.textContent = `Page ${i} of ${totalPages}`;
+          wrapper.appendChild(heading);
+
+          const canvas = document.createElement("canvas");
+          canvas.className = "mx-auto max-w-full rounded border border-border/20 bg-background shadow-sm";
+          const context = canvas.getContext("2d");
+          if (!context) continue;
+
+          const pixelRatio = window.devicePixelRatio || 1;
+          canvas.width = Math.floor(viewport.width * pixelRatio);
+          canvas.height = Math.floor(viewport.height * pixelRatio);
+          canvas.style.width = `${Math.floor(viewport.width)}px`;
+          canvas.style.height = `${Math.floor(viewport.height)}px`;
+          context.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
+
+          wrapper.appendChild(canvas);
+          container.appendChild(wrapper);
+
+          const task = page.render({ canvasContext: context, viewport });
+          tasks.push(task);
+          await task.promise;
+        }
+        if (!cancelled) setScrollRendering(false);
+      } catch (err: any) {
+        if (err?.name === "RenderingCancelledException") return;
+        if (!cancelled) {
+          setScrollRendering(false);
+          onError(err?.message || "PDF preview failed. Please retry or download the PDF.");
+        }
+      }
+    };
+
+    renderAll();
+
+    return () => {
+      cancelled = true;
+      tasks.forEach((t) => t?.cancel?.());
+      documentTask?.destroy?.();
+      pdfDocument?.destroy?.();
+    };
+  }, [blob, viewMode, onError]);
 
   return (
     <div className="flex min-h-0 flex-1 flex-col bg-muted/20">
       <div className="flex items-center justify-between gap-3 border-b border-border/20 px-3 py-2 text-xs text-muted-foreground">
         <span className="truncate">{filename || "document.pdf"}</span>
         <div className="flex shrink-0 items-center gap-2">
-          <Button variant="outline" size="sm" className="h-7 px-2 text-xs" onClick={() => setPageNumber((p) => Math.max(1, p - 1))} disabled={rendering || pageNumber <= 1}>Prev</Button>
-          <span>Page {pageNumber} / {pageCount}</span>
-          <Button variant="outline" size="sm" className="h-7 px-2 text-xs" onClick={() => setPageNumber((p) => Math.min(pageCount, p + 1))} disabled={rendering || pageNumber >= pageCount}>Next</Button>
+          <div className="flex items-center rounded-md border border-border/30 p-0.5">
+            <button
+              type="button"
+              onClick={() => setViewMode("single")}
+              className={`px-2 py-0.5 text-[11px] rounded ${viewMode === "single" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
+            >
+              Single Page
+            </button>
+            <button
+              type="button"
+              onClick={() => setViewMode("scroll")}
+              className={`px-2 py-0.5 text-[11px] rounded ${viewMode === "scroll" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground"}`}
+            >
+              Scroll All
+            </button>
+          </div>
+          {viewMode === "single" ? (
+            <>
+              <Button variant="outline" size="sm" className="h-7 px-2 text-xs" onClick={() => setPageNumber((p) => Math.max(1, p - 1))} disabled={rendering || pageNumber <= 1}>Prev</Button>
+              <span>Page {pageNumber} / {pageCount}</span>
+              <Button variant="outline" size="sm" className="h-7 px-2 text-xs" onClick={() => setPageNumber((p) => Math.min(pageCount, p + 1))} disabled={rendering || pageNumber >= pageCount}>Next</Button>
+            </>
+          ) : (
+            <span>{pageCount} page{pageCount === 1 ? "" : "s"}</span>
+          )}
         </div>
       </div>
-      <div className="relative flex-1 overflow-auto p-3">
-        {rendering && (
-          <div className="absolute inset-0 z-10 flex items-center justify-center gap-2 bg-background/80 text-muted-foreground">
-            <Loader2 className="h-5 w-5 animate-spin" />
-            <span className="text-sm">Rendering PDF…</span>
-          </div>
-        )}
-        <canvas ref={canvasRef} className="mx-auto max-w-full rounded border border-border/20 bg-background shadow-sm" />
-      </div>
+      {viewMode === "single" ? (
+        <div className="relative flex-1 overflow-auto p-3">
+          {rendering && (
+            <div className="absolute inset-0 z-10 flex items-center justify-center gap-2 bg-background/80 text-muted-foreground">
+              <Loader2 className="h-5 w-5 animate-spin" />
+              <span className="text-sm">Rendering PDF…</span>
+            </div>
+          )}
+          <canvas ref={canvasRef} className="mx-auto max-w-full rounded border border-border/20 bg-background shadow-sm" />
+        </div>
+      ) : (
+        <div className="relative flex-1 overflow-auto p-3">
+          {scrollRendering && (
+            <div className="sticky top-0 z-10 mb-2 flex items-center justify-center gap-2 rounded bg-background/80 py-1 text-muted-foreground">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              <span className="text-xs">Rendering pages…</span>
+            </div>
+          )}
+          <div ref={scrollContainerRef} />
+        </div>
+      )}
     </div>
   );
 };
