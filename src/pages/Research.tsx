@@ -352,10 +352,24 @@ const ResearchPage = () => {
                 {activeTab === "search" ? "Research Results" : "Case Analysis"}
               </h3>
               {result && !loading && (
-                <Button variant="ghost" size="sm" onClick={handleCopy} className="text-muted-foreground hover:text-secondary">
-                  {copied ? <Check className="w-4 h-4 mr-1" /> : <Copy className="w-4 h-4 mr-1" />}
-                  {copied ? "Copied" : "Copy"}
-                </Button>
+                <div className="flex items-center gap-1 flex-wrap justify-end">
+                  <Button variant="ghost" size="sm" onClick={() => setSaveOpen(true)} className="text-muted-foreground hover:text-secondary">
+                    <BookmarkPlus className="w-4 h-4 mr-1" /> Save
+                  </Button>
+                  {mode === "professional" ? (
+                    <Button variant="ghost" size="sm" onClick={() => setBriefOpen(true)} className="text-muted-foreground hover:text-secondary">
+                      <Scale className="w-4 h-4 mr-1" /> IRAC Brief
+                    </Button>
+                  ) : (
+                    <Button variant="ghost" size="sm" onClick={() => setFlashOpen(true)} className="text-muted-foreground hover:text-secondary">
+                      <GraduationCap className="w-4 h-4 mr-1" /> Flashcards
+                    </Button>
+                  )}
+                  <Button variant="ghost" size="sm" onClick={handleCopy} className="text-muted-foreground hover:text-secondary">
+                    {copied ? <Check className="w-4 h-4 mr-1" /> : <Copy className="w-4 h-4 mr-1" />}
+                    {copied ? "Copied" : "Copy"}
+                  </Button>
+                </div>
               )}
             </div>
             <div className="prose prose-sm dark:prose-invert max-w-none [&_h1]:font-serif [&_h2]:font-serif [&_h3]:font-serif [&_strong]:text-secondary [&_a]:text-secondary">
@@ -366,9 +380,49 @@ const ResearchPage = () => {
                 <Loader2 className="w-4 h-4 animate-spin" /><span className="text-sm">Generating response...</span>
               </div>
             )}
+            {followups.length > 0 && !loading && (
+              <div className="mt-5 pt-4 border-t border-border/20">
+                <p className="text-xs uppercase tracking-wide text-muted-foreground mb-2">Follow-up questions</p>
+                <div className="flex flex-wrap gap-2">
+                  {followups.map((f, i) => (
+                    <button
+                      key={i}
+                      onClick={() => {
+                        if (activeTab === "analyze") { setCaseDetails(f); }
+                        else { setQuery(f); setActiveTab("search"); setTimeout(() => handleSearchFromText(f), 0); }
+                      }}
+                      className="text-xs px-3 py-1.5 rounded-full bg-card border border-border/30 hover:border-secondary/40 hover:text-secondary transition-colors"
+                    >
+                      {f}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </motion.div>
       )}
+
+      <SaveToCollectionDialog
+        open={saveOpen}
+        onOpenChange={setSaveOpen}
+        content={result}
+        sourceQuery={activeTab === "analyze" ? caseDetails.slice(0, 200) : query}
+      />
+      <FlashcardsDialog
+        open={flashOpen}
+        onOpenChange={setFlashOpen}
+        source={result}
+        sourceQuery={activeTab === "analyze" ? caseDetails.slice(0, 200) : query}
+        token={getToken()}
+      />
+      <IracBriefDialog
+        open={briefOpen}
+        onOpenChange={setBriefOpen}
+        source={result}
+        sourceQuery={activeTab === "analyze" ? caseDetails.slice(0, 200) : query}
+        token={getToken()}
+      />
     </div>
   );
 };
