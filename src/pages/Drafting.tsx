@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectGroup, SelectLabel, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
@@ -24,18 +24,76 @@ import { useSearchParams } from "react-router-dom";
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 
-const DOCUMENT_TYPES = [
-  { value: "petition", label: "Petition (Civil/Criminal/Writ)" },
-  { value: "contract", label: "Contract / Agreement" },
-  { value: "legal_notice", label: "Legal Notice" },
-  { value: "affidavit", label: "Affidavit" },
-  { value: "power_of_attorney", label: "Power of Attorney" },
-  { value: "lease_agreement", label: "Lease / Rental Agreement" },
-  { value: "partnership_deed", label: "Partnership Deed" },
-  { value: "will", label: "Will / Testament" },
-  { value: "complaint", label: "Complaint" },
-  { value: "reply", label: "Reply / Written Statement" },
+const DOCUMENT_GROUPS: { group: string; items: { value: string; label: string }[] }[] = [
+  { group: "Pleadings & Petitions", items: [
+    { value: "writ_petition", label: "Writ Petition (Art. 32 / 226)" },
+    { value: "slp", label: "Special Leave Petition (Art. 136)" },
+    { value: "civil_suit_plaint", label: "Civil Suit Plaint (CPC)" },
+    { value: "written_statement", label: "Written Statement / Reply" },
+    { value: "counter_claim", label: "Counter-Claim" },
+    { value: "review_revision_appeal", label: "Review / Revision / Appeal" },
+    { value: "pil", label: "Public Interest Litigation (PIL)" },
+  ]},
+  { group: "Criminal", items: [
+    { value: "fir_quashing", label: "FIR Quashing Petition (S.482 CrPC / S.528 BNSS)" },
+    { value: "bail_regular", label: "Regular Bail Application" },
+    { value: "bail_anticipatory", label: "Anticipatory Bail Application" },
+    { value: "bail_interim", label: "Interim Bail Application" },
+    { value: "criminal_complaint", label: "Criminal Complaint (S.200 CrPC / S.223 BNSS)" },
+    { value: "discharge_application", label: "Discharge / Acquittal Application" },
+    { value: "protest_petition", label: "Protest Petition" },
+  ]},
+  { group: "Notices & Affidavits", items: [
+    { value: "legal_notice", label: "Legal Notice (general)" },
+    { value: "demand_notice_138", label: "Demand Notice (S.138 NI Act)" },
+    { value: "notice_80_cpc", label: "Notice under S.80 CPC" },
+    { value: "cease_desist", label: "Cease & Desist Notice" },
+    { value: "affidavit", label: "Affidavit" },
+    { value: "vakalatnama", label: "Verification / Vakalatnama" },
+  ]},
+  { group: "Contracts & Agreements", items: [
+    { value: "service_agreement", label: "Service Agreement" },
+    { value: "nda", label: "Non-Disclosure Agreement (NDA)" },
+    { value: "employment_agreement", label: "Employment Agreement" },
+    { value: "consultancy_agreement", label: "Consultancy Agreement" },
+    { value: "mou", label: "Memorandum of Understanding" },
+    { value: "jv_shareholders", label: "Joint Venture / Shareholders Agreement" },
+    { value: "founders_agreement", label: "Founders Agreement" },
+    { value: "vendor_supply", label: "Vendor / Supply Agreement" },
+    { value: "saas_license", label: "SaaS / Software Licence Agreement" },
+  ]},
+  { group: "Property & Family", items: [
+    { value: "lease_agreement", label: "Lease / Rental Agreement" },
+    { value: "leave_licence", label: "Leave & Licence Agreement" },
+    { value: "sale_deed", label: "Sale Deed / Agreement to Sell" },
+    { value: "gift_deed", label: "Gift Deed" },
+    { value: "power_of_attorney", label: "Power of Attorney (General / Special)" },
+    { value: "will", label: "Will / Testament" },
+    { value: "divorce_petition", label: "Divorce Petition (Mutual / Contested)" },
+    { value: "maintenance_125", label: "Maintenance Petition (S.125 CrPC)" },
+    { value: "adoption_deed", label: "Adoption Deed" },
+  ]},
+  { group: "Corporate & Compliance", items: [
+    { value: "board_resolution", label: "Board Resolution" },
+    { value: "shareholder_resolution", label: "Shareholder Resolution" },
+    { value: "partnership_deed", label: "Partnership Deed / LLP Agreement" },
+    { value: "moa_aoa", label: "Memorandum & Articles of Association" },
+    { value: "compliance_opinion", label: "Compliance Opinion" },
+    { value: "tax_opinion", label: "GST / Tax Opinion" },
+  ]},
+  { group: "IP & Tech", items: [
+    { value: "tm_cease_desist", label: "Trademark Cease & Desist" },
+    { value: "copyright_assignment", label: "Copyright Assignment" },
+    { value: "licensing_agreement", label: "Licensing Agreement" },
+    { value: "privacy_policy", label: "Privacy Policy / Terms of Service" },
+  ]},
+  { group: "Consumer & Labour", items: [
+    { value: "consumer_complaint", label: "Consumer Complaint (CPA 2019)" },
+    { value: "labour_claim", label: "Labour Court Statement of Claim" },
+    { value: "industrial_dispute", label: "Industrial Dispute Reference" },
+  ]},
 ];
+const DOCUMENT_TYPES = DOCUMENT_GROUPS.flatMap((g) => g.items);
 
 function extractHeadings(md: string) {
   const lines = md.split("\n");
@@ -312,8 +370,13 @@ const DraftingPage = () => {
                     <Label className="text-xs text-muted-foreground">Document Type *</Label>
                     <Select value={documentType} onValueChange={setDocumentType}>
                       <SelectTrigger className="bg-card/50 border-border/30"><SelectValue placeholder="Select document type..." /></SelectTrigger>
-                      <SelectContent>
-                        {DOCUMENT_TYPES.map((dt) => (<SelectItem key={dt.value} value={dt.value}>{dt.label}</SelectItem>))}
+                      <SelectContent className="max-h-80">
+                        {DOCUMENT_GROUPS.map((g) => (
+                          <SelectGroup key={g.group}>
+                            <SelectLabel className="text-[11px] uppercase tracking-wider text-secondary/80">{g.group}</SelectLabel>
+                            {g.items.map((dt) => (<SelectItem key={dt.value} value={dt.value}>{dt.label}</SelectItem>))}
+                          </SelectGroup>
+                        ))}
                       </SelectContent>
                     </Select>
                   </div>
