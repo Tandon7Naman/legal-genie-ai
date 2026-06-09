@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Loader2, BookOpen, Sparkles } from "lucide-react";
@@ -8,11 +8,16 @@ import { motion } from "framer-motion";
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 
-export function StatuteSimplifier({ token }: { token: string }) {
+export function StatuteSimplifier({ token, initialStatute }: { token: string; initialStatute?: string }) {
   const { toast } = useToast();
   const [input, setInput] = useState("");
   const [out, setOut] = useState("");
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (initialStatute && !input) setInput(initialStatute);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialStatute]);
 
   const run = async () => {
     if (!input.trim()) return;
