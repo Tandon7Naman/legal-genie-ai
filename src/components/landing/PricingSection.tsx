@@ -8,7 +8,7 @@ const tiers = [
     price: "Free",
     desc: "For law students building their knowledge",
     features: ["AI Legal Search", "Case Summaries", "Document Templates", "5 AI Queries / day", "Community Support"],
-    cta: "Get Started Free",
+    cta: "Create account",
     highlighted: false,
   },
   {
@@ -17,7 +17,7 @@ const tiers = [
     period: "/month",
     desc: "For independent practitioners",
     features: ["Everything in Student", "Unlimited AI Queries", "Case Management", "Client Management", "Document Drafting", "Priority Support"],
-    cta: "Start Free Trial",
+    cta: "Create account",
     highlighted: true,
   },
   {
@@ -120,7 +120,7 @@ export const PricingSection = () => {
                   if (tier.cta === "Contact Sales") {
                     document.querySelector('#contact')?.scrollIntoView({ behavior: 'smooth' });
                   } else {
-                    window.location.href = '/auth';
+                    window.location.href = '/auth?mode=signup';
                   }
                 }}
               >
