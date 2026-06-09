@@ -210,7 +210,13 @@ const ResearchPage = () => {
         </div>
         <ModeToggle mode={mode} onChange={updateMode} />
       </div>
-      <Tabs value={activeTab} onValueChange={(v) => { setActiveTab(v); setResult(""); }}>
+      <Tabs value={activeTab} onValueChange={(v) => {
+        // Carry topic across tabs
+        if (v === "analyze" && !caseDetails.trim() && query.trim()) setCaseDetails(query);
+        if (v === "search" && !query.trim() && caseDetails.trim()) setQuery(caseDetails.slice(0, 200));
+        setActiveTab(v);
+        setResult("");
+      }}>
         <TabsList className="bg-card/50 border border-border/20 mb-6">
           <TabsTrigger value="search" className="data-[state=active]:bg-secondary data-[state=active]:text-secondary-foreground">
             <Search className="w-4 h-4 mr-2" /> Legal Search
@@ -305,7 +311,7 @@ const ResearchPage = () => {
         </TabsContent>
 
         <TabsContent value="statute">
-          <StatuteSimplifier token={getToken()} />
+          <StatuteSimplifier token={getToken()} initialStatute={query || caseDetails.slice(0, 500)} />
         </TabsContent>
 
         <TabsContent value="history">
