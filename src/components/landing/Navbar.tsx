@@ -3,6 +3,8 @@ import { Link } from "react-router-dom";
 import { Menu, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { motion, AnimatePresence } from "framer-motion";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
 
 const navLinks = [
   { label: "Practice Areas", href: "#practice-areas" },
@@ -15,6 +17,8 @@ const navLinks = [
 export const Navbar = () => {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const { user } = useAuth();
+  const handleSignOut = async () => { await supabase.auth.signOut(); window.location.href = '/'; };
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 20);
@@ -56,12 +60,25 @@ export const Navbar = () => {
               <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-secondary transition-all group-hover:w-full" />
             </button>
           ))}
-          <Button size="sm" className="bg-secondary text-secondary-foreground hover:bg-gold-dark font-semibold glow-gold-sm" onClick={() => window.location.href = '/auth?mode=signin'}>
-            Sign in
-          </Button>
-          <Button size="sm" className="bg-secondary text-secondary-foreground hover:bg-gold-dark font-semibold glow-gold-sm" onClick={() => window.location.href = '/auth?mode=signup'}>
-            Create account
-          </Button>
+          {user ? (
+            <>
+              <Button size="sm" className="bg-secondary text-secondary-foreground hover:bg-gold-dark font-semibold glow-gold-sm" onClick={() => window.location.href = '/dashboard'}>
+                Dashboard
+              </Button>
+              <Button size="sm" className="bg-secondary text-secondary-foreground hover:bg-gold-dark font-semibold glow-gold-sm" onClick={handleSignOut}>
+                Sign out
+              </Button>
+            </>
+          ) : (
+            <>
+              <Button size="sm" className="bg-secondary text-secondary-foreground hover:bg-gold-dark font-semibold glow-gold-sm" onClick={() => window.location.href = '/auth?mode=signin'}>
+                Sign in
+              </Button>
+              <Button size="sm" className="bg-secondary text-secondary-foreground hover:bg-gold-dark font-semibold glow-gold-sm" onClick={() => window.location.href = '/auth?mode=signup'}>
+                Create account
+              </Button>
+            </>
+          )}
         </div>
 
         {/* Mobile toggle */}
@@ -89,12 +106,25 @@ export const Navbar = () => {
                   {l.label}
                 </button>
               ))}
-              <Button className="bg-secondary text-secondary-foreground hover:bg-gold-dark font-semibold mt-2" onClick={() => window.location.href = '/auth?mode=signin'}>
-                Sign in
-              </Button>
-              <Button className="bg-secondary text-secondary-foreground hover:bg-gold-dark font-semibold" onClick={() => window.location.href = '/auth?mode=signup'}>
-                Create account
-              </Button>
+              {user ? (
+                <>
+                  <Button className="bg-secondary text-secondary-foreground hover:bg-gold-dark font-semibold mt-2" onClick={() => window.location.href = '/dashboard'}>
+                    Dashboard
+                  </Button>
+                  <Button className="bg-secondary text-secondary-foreground hover:bg-gold-dark font-semibold" onClick={handleSignOut}>
+                    Sign out
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Button className="bg-secondary text-secondary-foreground hover:bg-gold-dark font-semibold mt-2" onClick={() => window.location.href = '/auth?mode=signin'}>
+                    Sign in
+                  </Button>
+                  <Button className="bg-secondary text-secondary-foreground hover:bg-gold-dark font-semibold" onClick={() => window.location.href = '/auth?mode=signup'}>
+                    Create account
+                  </Button>
+                </>
+              )}
             </div>
           </motion.div>
         )}
