@@ -56,7 +56,7 @@ export const Navbar = () => {
               <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-secondary transition-all group-hover:w-full" />
             </button>
           ))}
-          <Button size="sm" variant="outline" className="border-secondary/40 text-primary-foreground hover:bg-secondary/10 hover:text-secondary font-semibold" onClick={() => window.location.href = '/auth?mode=signin'}>
+          <Button size="sm" className="bg-secondary text-secondary-foreground hover:bg-gold-dark font-semibold glow-gold-sm" onClick={() => window.location.href = '/auth?mode=signin'}>
             Sign in
           </Button>
           <Button size="sm" className="bg-secondary text-secondary-foreground hover:bg-gold-dark font-semibold glow-gold-sm" onClick={() => window.location.href = '/auth?mode=signup'}>
@@ -89,7 +89,7 @@ export const Navbar = () => {
                   {l.label}
                 </button>
               ))}
-              <Button variant="outline" className="border-secondary/40 text-primary-foreground hover:bg-secondary/10 hover:text-secondary font-semibold mt-2" onClick={() => window.location.href = '/auth?mode=signin'}>
+              <Button className="bg-secondary text-secondary-foreground hover:bg-gold-dark font-semibold mt-2" onClick={() => window.location.href = '/auth?mode=signin'}>
                 Sign in
               </Button>
               <Button className="bg-secondary text-secondary-foreground hover:bg-gold-dark font-semibold" onClick={() => window.location.href = '/auth?mode=signup'}>
