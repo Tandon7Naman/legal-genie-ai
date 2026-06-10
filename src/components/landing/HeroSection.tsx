@@ -1,6 +1,8 @@
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { ArrowRight, Scale, Shield, Brain, TrendingUp, Users, FileText } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
 
 const FloatingOrb = ({ className, delay = 0 }: { className: string; delay?: number }) => (
   <motion.div
@@ -11,6 +13,7 @@ const FloatingOrb = ({ className, delay = 0 }: { className: string; delay?: numb
 );
 
 export const HeroSection = () => {
+  const { user } = useAuth();
   return (
     <section className="relative min-h-screen flex items-center bg-gradient-mesh overflow-hidden pt-16">
       <FloatingOrb className="w-96 h-96 bg-secondary/10 top-20 -left-48" delay={0} />
@@ -52,13 +55,27 @@ export const HeroSection = () => {
             </p>
 
             <div className="flex flex-wrap gap-4 mb-12">
-              <Button size="lg" className="bg-secondary text-secondary-foreground hover:bg-gold-dark font-semibold text-base px-8 h-13 glow-gold group" onClick={() => window.location.href = '/auth?mode=signup'}>
-                Create account
-                <ArrowRight className="ml-2 group-hover:translate-x-1 transition-transform" size={18} />
-              </Button>
-              <Button size="lg" className="bg-secondary text-secondary-foreground hover:bg-gold-dark font-semibold text-base px-8 h-13 glow-gold" onClick={() => window.location.href = '/auth?mode=signin'}>
-                Sign in
-              </Button>
+              {user ? (
+                <>
+                  <Button size="lg" className="bg-secondary text-secondary-foreground hover:bg-gold-dark font-semibold text-base px-8 h-13 glow-gold group" onClick={() => window.location.href = '/dashboard'}>
+                    Go to Dashboard
+                    <ArrowRight className="ml-2 group-hover:translate-x-1 transition-transform" size={18} />
+                  </Button>
+                  <Button size="lg" className="bg-secondary text-secondary-foreground hover:bg-gold-dark font-semibold text-base px-8 h-13 glow-gold" onClick={async () => { await supabase.auth.signOut(); window.location.href = '/'; }}>
+                    Sign out
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Button size="lg" className="bg-secondary text-secondary-foreground hover:bg-gold-dark font-semibold text-base px-8 h-13 glow-gold group" onClick={() => window.location.href = '/auth?mode=signup'}>
+                    Create account
+                    <ArrowRight className="ml-2 group-hover:translate-x-1 transition-transform" size={18} />
+                  </Button>
+                  <Button size="lg" className="bg-secondary text-secondary-foreground hover:bg-gold-dark font-semibold text-base px-8 h-13 glow-gold" onClick={() => window.location.href = '/auth?mode=signin'}>
+                    Sign in
+                  </Button>
+                </>
+              )}
             </div>
 
             {/* Trust badges — flex-wrap for mobile */}
