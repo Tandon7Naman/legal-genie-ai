@@ -6,11 +6,13 @@ import { Button } from "@/components/ui/button";
 import { ArrowLeft } from "lucide-react";
 import { ClearSampleDataButton } from "@/components/onboarding/ClearSampleDataButton";
 import { OnboardingTour } from "@/components/onboarding/OnboardingTour";
+import { useIdleLogout } from "@/hooks/useIdleLogout";
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const navigate = useNavigate();
   const location = useLocation();
   const showBack = location.pathname !== "/dashboard";
+  useIdleLogout();
 
   return (
     <SidebarProvider>

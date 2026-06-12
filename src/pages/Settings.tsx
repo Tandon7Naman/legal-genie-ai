@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { motion } from "framer-motion";
 import { Loader2, Save, User, Palette, Moon, Sun } from "lucide-react";
@@ -29,6 +30,7 @@ const Settings = () => {
   });
   const [isDark, setIsDark] = useState(true);
   const [accentColor, setAccentColor] = useState("#c9a84c");
+  const [idleTimeout, setIdleTimeout] = useState<number>(15);
 
   useEffect(() => {
     if (profile) {
@@ -46,13 +48,16 @@ const Settings = () => {
 
   useEffect(() => {
     if (!user) return;
-    supabase.from("user_preferences").select("theme, accent_color").eq("user_id", user.id).maybeSingle()
+    supabase.from("user_preferences").select("theme, accent_color, idle_timeout_minutes").eq("user_id", user.id).maybeSingle()
       .then(({ data }) => {
         if (data) {
           setAccentColor(data.accent_color || "#c9a84c");
           const dark = data.theme === "dark";
           setIsDark(dark);
           document.documentElement.classList.toggle("dark", dark);
+          const mins = data.idle_timeout_minutes ?? 15;
+          setIdleTimeout(mins);
+          localStorage.setItem("idleTimeoutMinutes", mins.toString());
         }
       });
   }, [user]);
@@ -94,6 +99,17 @@ const Settings = () => {
     if (user) {
       await supabase.from("user_preferences")
         .upsert({ user_id: user.id, theme: isDark ? "dark" : "light", accent_color: color }, { onConflict: "user_id" });
+    }
+  };
+
+  const changeIdleTimeout = async (value: string) => {
+    const mins = parseInt(value, 10);
+    setIdleTimeout(mins);
+    localStorage.setItem("idleTimeoutMinutes", mins.toString());
+    if (user) {
+      await supabase.from("user_preferences")
+        .upsert({ user_id: user.id, theme: isDark ? "dark" : "light", accent_color: accentColor, idle_timeout_minutes: mins }, { onConflict: "user_id" });
+      toast({ title: "Auto-logout updated", description: mins === 0 ? "Disabled" : `After ${mins} minutes of inactivity` });
     }
   };
 
@@ -194,6 +210,26 @@ const Settings = () => {
                     />
                   ))}
                 </div>
+              </div>
+
+              <div className="pt-2 border-t border-border/20">
+                <p className="font-medium">Auto Sign-out (Idle Timeout)</p>
+                <p className="text-sm text-muted-foreground mb-3">
+                  Sign out automatically after a period of inactivity or when the tab is closed.
+                </p>
+                <Select value={idleTimeout.toString()} onValueChange={changeIdleTimeout}>
+                  <SelectTrigger className="w-full max-w-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="5">5 minutes</SelectItem>
+                    <SelectItem value="10">10 minutes</SelectItem>
+                    <SelectItem value="15">15 minutes</SelectItem>
+                    <SelectItem value="30">30 minutes</SelectItem>
+                    <SelectItem value="60">1 hour</SelectItem>
+                    <SelectItem value="0">Never</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </div>
           </TabsContent>
