@@ -1,0 +1,1 @@
+ALTER TABLE public.user_preferences ADD COLUMN IF NOT EXISTS idle_timeout_minutes integer NOT NULL DEFAULT 15;

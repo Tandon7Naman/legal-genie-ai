@@ -936,6 +936,7 @@ export type Database = {
           accent_color: string
           created_at: string
           id: string
+          idle_timeout_minutes: number
           research_mode: string
           theme: string
           updated_at: string
@@ -945,6 +946,7 @@ export type Database = {
           accent_color?: string
           created_at?: string
           id?: string
+          idle_timeout_minutes?: number
           research_mode?: string
           theme?: string
           updated_at?: string
@@ -954,6 +956,7 @@ export type Database = {
           accent_color?: string
           created_at?: string
           id?: string
+          idle_timeout_minutes?: number
           research_mode?: string
           theme?: string
           updated_at?: string
