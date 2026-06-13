@@ -841,7 +841,7 @@ const ECourtsPage = () => {
                     onClick={() => toggleDetailTab("orders")}
                     className={chipClass(activeDetailTab === "orders")}
                   >
-                    <FileText className="w-3 h-3" /> {cd.orderCount || ordersFinal.length} Orders
+                    <FileText className="w-3 h-3" /> {ordersFinal.length || cd.orderCount} Orders
                   </button>
                 )}
                 {(cd.hearingCount > 0 || hearingsFinal.length > 0) && (
@@ -850,7 +850,7 @@ const ECourtsPage = () => {
                     onClick={() => toggleDetailTab("hearings")}
                     className={chipClass(activeDetailTab === "hearings")}
                   >
-                    <Clock className="w-3 h-3" /> {cd.hearingCount || hearingsFinal.length} Hearings
+                    <Clock className="w-3 h-3" /> {hearingsFinal.length || cd.hearingCount} Hearings
                   </button>
                 )}
                 {(cd.iaCount > 0 || iasFinal.length > 0) && (
@@ -859,7 +859,7 @@ const ECourtsPage = () => {
                     onClick={() => toggleDetailTab("ias")}
                     className={chipClass(activeDetailTab === "ias")}
                   >
-                    <Briefcase className="w-3 h-3" /> {cd.iaCount || iasFinal.length} IAs
+                    <Briefcase className="w-3 h-3" /> {iasFinal.length || cd.iaCount} IAs
                   </button>
                 )}
                 {(cd.judgmentCount > 0 || judgmentsFinal.length > 0) && (
@@ -868,7 +868,7 @@ const ECourtsPage = () => {
                     onClick={() => toggleDetailTab("judgments")}
                     className={chipClass(activeDetailTab === "judgments")}
                   >
-                    <Gavel className="w-3 h-3" /> {cd.judgmentCount || judgmentsFinal.length} Judgments
+                    <Gavel className="w-3 h-3" /> {judgmentsFinal.length || cd.judgmentCount} Judgments
                   </button>
                 )}
                 {transferDetails.length > 0 && (
