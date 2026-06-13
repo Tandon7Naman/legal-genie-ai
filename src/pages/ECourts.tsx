@@ -1108,10 +1108,12 @@ const ECourtsPage = () => {
                             hearingsFinal.map((h: any, i: number) => (
                               <div
                                 key={i}
-                                className="p-3 rounded-lg bg-background/50 border border-border/10 hover:border-secondary/30 cursor-pointer transition-colors"
-                                onClick={() => openRecordDialog(h, "hearing")}
+                                className="p-3 rounded-lg bg-background/50 border border-border/10 hover:border-secondary/30 transition-colors"
                               >
-                                <div className="flex items-center justify-between gap-3">
+                                <div
+                                  className="flex items-center justify-between gap-3 cursor-pointer"
+                                  onClick={() => openRecordDialog(h, "hearing")}
+                                >
                                   <p className="text-sm font-medium">
                                     {h.hearingDate || h.date || h.businessOnDate || h.businessDate || "Date N/A"}
                                   </p>
@@ -1135,6 +1137,12 @@ const ECourtsPage = () => {
                                       (h.businessOnDate ? `Business on: ${h.businessOnDate}` : "")}
                                   </p>
                                 )}
+                                {analysisKeyFor(h) && (
+                                  <div className="mt-2 flex justify-end">
+                                    {renderAnalysisButton(h)}
+                                  </div>
+                                )}
+                                {renderAnalysisPanel(h, "Research-grade Hearing Analysis")}
                               </div>
                             ))
                           ) : (
@@ -1163,14 +1171,18 @@ const ECourtsPage = () => {
                                       {j.judge ? ` · ${j.judge}` : ""}
                                     </p>
                                   </div>
-                                  <button
-                                    type="button"
-                                    onClick={() => openRecordDialog(j, "judgment")}
-                                    className="text-xs flex items-center gap-1 text-secondary hover:underline shrink-0"
-                                  >
-                                    <Eye className="w-3 h-3" /> View Details
-                                  </button>
+                                  <div className="flex flex-col gap-1.5 shrink-0">
+                                    <button
+                                      type="button"
+                                      onClick={() => openRecordDialog(j, "judgment")}
+                                      className="text-xs flex items-center gap-1 text-secondary hover:underline"
+                                    >
+                                      <Eye className="w-3 h-3" /> View Details
+                                    </button>
+                                    {renderAnalysisButton(j)}
+                                  </div>
                                 </div>
+                                {renderAnalysisPanel(j, "Research-grade Judgment Analysis")}
                               </div>
                             ))
                           ) : (
