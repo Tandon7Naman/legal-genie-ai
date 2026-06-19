@@ -245,6 +245,7 @@ const CaseDetailPage = () => {
                 <div>
                   <span className="text-sm font-medium">{new Date(h.date).toLocaleString()}</span>
                   {h.purpose && <span className="text-sm text-muted-foreground ml-3">{h.purpose}</span>}
+                  {h.source === "ecourts" && <Badge variant="outline" className="ml-2 text-[10px] bg-secondary/10 text-secondary border-secondary/30">From eCourts</Badge>}
                 </div>
                 <div className="flex items-center gap-2">
                   {h.outcome && <Badge variant="outline" className="text-xs">{h.outcome}</Badge>}
