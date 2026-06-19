@@ -114,6 +114,7 @@ export type Database = {
           id: string
           is_sample: boolean
           location: string | null
+          source: string
           title: string
           type: string
           updated_at: string
@@ -128,6 +129,7 @@ export type Database = {
           id?: string
           is_sample?: boolean
           location?: string | null
+          source?: string
           title: string
           type?: string
           updated_at?: string
@@ -142,6 +144,7 @@ export type Database = {
           id?: string
           is_sample?: boolean
           location?: string | null
+          source?: string
           title?: string
           type?: string
           updated_at?: string
@@ -195,10 +198,16 @@ export type Database = {
       cases: {
         Row: {
           case_number: string | null
+          case_status: string | null
           client_id: string | null
+          cnr_number: string | null
           court: string | null
+          court_complex: string | null
           created_at: string
           description: string | null
+          ecourts_last_synced_at: string | null
+          ecourts_sync_error: string | null
+          ecourts_sync_status: string | null
           id: string
           is_sample: boolean
           judge: string | null
@@ -211,10 +220,16 @@ export type Database = {
         }
         Insert: {
           case_number?: string | null
+          case_status?: string | null
           client_id?: string | null
+          cnr_number?: string | null
           court?: string | null
+          court_complex?: string | null
           created_at?: string
           description?: string | null
+          ecourts_last_synced_at?: string | null
+          ecourts_sync_error?: string | null
+          ecourts_sync_status?: string | null
           id?: string
           is_sample?: boolean
           judge?: string | null
@@ -227,10 +242,16 @@ export type Database = {
         }
         Update: {
           case_number?: string | null
+          case_status?: string | null
           client_id?: string | null
+          cnr_number?: string | null
           court?: string | null
+          court_complex?: string | null
           created_at?: string
           description?: string | null
+          ecourts_last_synced_at?: string | null
+          ecourts_sync_error?: string | null
+          ecourts_sync_status?: string | null
           id?: string
           is_sample?: boolean
           judge?: string | null
@@ -486,6 +507,7 @@ export type Database = {
           notes: string | null
           outcome: string | null
           purpose: string | null
+          source: string
           user_id: string
         }
         Insert: {
@@ -499,6 +521,7 @@ export type Database = {
           notes?: string | null
           outcome?: string | null
           purpose?: string | null
+          source?: string
           user_id: string
         }
         Update: {
@@ -512,6 +535,7 @@ export type Database = {
           notes?: string | null
           outcome?: string | null
           purpose?: string | null
+          source?: string
           user_id?: string
         }
         Relationships: [
