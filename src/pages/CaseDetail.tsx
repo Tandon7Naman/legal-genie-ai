@@ -13,11 +13,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { motion } from "framer-motion";
-import { ArrowLeft, Calendar, Plus, Loader2, FileText, CheckSquare, MessageSquare, Upload, Trash2, Download } from "lucide-react";
+import { ArrowLeft, Calendar, Plus, Loader2, FileText, CheckSquare, MessageSquare, Upload, Trash2, Download, RefreshCw, Gavel } from "lucide-react";
+import { formatDistanceToNow } from "date-fns";
 
 type CaseStatus = "active" | "pending" | "closed" | "won" | "lost" | "settled";
-interface CaseData { id: string; title: string; case_number: string | null; court: string | null; judge: string | null; status: CaseStatus; practice_area: string | null; description: string | null; next_hearing_date: string | null; created_at: string; }
-interface Hearing { id: string; date: string; court: string | null; judge: string | null; purpose: string | null; notes: string | null; outcome: string | null; }
+interface CaseData { id: string; title: string; case_number: string | null; court: string | null; judge: string | null; status: CaseStatus; practice_area: string | null; description: string | null; next_hearing_date: string | null; created_at: string; cnr_number: string | null; court_complex: string | null; case_status: string | null; ecourts_last_synced_at: string | null; ecourts_sync_status: string | null; ecourts_sync_error: string | null; }
+interface Hearing { id: string; date: string; court: string | null; judge: string | null; purpose: string | null; notes: string | null; outcome: string | null; source?: string | null; }
 interface Task { id: string; title: string; description: string | null; due_date: string | null; completed: boolean; }
 interface CaseNote { id: string; content: string; created_at: string; }
 
@@ -46,6 +47,7 @@ const CaseDetailPage = () => {
   const [newTask, setNewTask] = useState({ title: "", due_date: "" });
   const [newNote, setNewNote] = useState("");
   const [uploading, setUploading] = useState(false);
+  const [syncing, setSyncing] = useState(false);
 
   const fetchAll = async () => {
     if (!id) return;
@@ -67,6 +69,19 @@ const CaseDetailPage = () => {
   };
 
   useEffect(() => { fetchAll(); }, [id]);
+
+  const refreshFromEcourts = async () => {
+    if (!id) return;
+    setSyncing(true);
+    const { data, error } = await supabase.functions.invoke("case-ecourts-sync", { body: { caseId: id } });
+    if (error || !data?.ok) {
+      toast({ title: "Sync failed", description: data?.error || error?.message || "Unable to fetch from eCourts", variant: "destructive" });
+    } else {
+      toast({ title: "Synced from eCourts", description: `${data.hearingCount || 0} upcoming hearing(s) updated.` });
+      fetchAll();
+    }
+    setSyncing(false);
+  };
 
   const updateStatus = async (status: CaseStatus) => {
     if (!id) return;
@@ -180,6 +195,36 @@ const CaseDetailPage = () => {
             </AlertDialog>
           </div>
         </div>
+
+        {caseData.cnr_number && (
+          <div className="mb-6 p-4 rounded-xl bg-card/50 border border-border/20">
+            <div className="flex items-start justify-between gap-3 mb-3">
+              <div className="flex items-center gap-2">
+                <Gavel className="w-4 h-4 text-secondary" />
+                <h3 className="font-serif font-semibold">eCourts Live Data</h3>
+                {caseData.ecourts_sync_status === "success" && <Badge variant="outline" className="text-xs bg-emerald-500/10 text-emerald-400 border-emerald-500/30">Synced</Badge>}
+                {caseData.ecourts_sync_status === "failed" && <Badge variant="outline" className="text-xs bg-red-500/10 text-red-400 border-red-500/30">Failed</Badge>}
+                {caseData.ecourts_sync_status === "pending" && <Badge variant="outline" className="text-xs bg-amber-500/10 text-amber-400 border-amber-500/30">Pending</Badge>}
+              </div>
+              <Button size="sm" variant="outline" onClick={refreshFromEcourts} disabled={syncing}>
+                {syncing ? <Loader2 className="w-3 h-3 mr-2 animate-spin" /> : <RefreshCw className="w-3 h-3 mr-2" />}
+                Refresh
+              </Button>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
+              <div><span className="text-xs text-muted-foreground block">CNR</span><span className="font-mono text-xs">{caseData.cnr_number}</span></div>
+              <div><span className="text-xs text-muted-foreground block">Status</span><span>{caseData.case_status || "—"}</span></div>
+              <div><span className="text-xs text-muted-foreground block">Court</span><span className="truncate">{caseData.court_complex || caseData.court || "—"}</span></div>
+              <div><span className="text-xs text-muted-foreground block">Next Hearing</span><span>{caseData.next_hearing_date ? new Date(caseData.next_hearing_date).toLocaleDateString() : "—"}</span></div>
+            </div>
+            {caseData.ecourts_sync_error && (
+              <p className="text-xs text-red-400 mt-2">{caseData.ecourts_sync_error}</p>
+            )}
+            {caseData.ecourts_last_synced_at && (
+              <p className="text-[11px] text-muted-foreground mt-2">Last synced {formatDistanceToNow(new Date(caseData.ecourts_last_synced_at), { addSuffix: true })} · auto-syncs daily</p>
+            )}
+          </div>
+        )}
 
         <Tabs defaultValue="hearings">
           <TabsList className="bg-card/50 border border-border/20 mb-6">
