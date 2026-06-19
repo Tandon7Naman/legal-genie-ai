@@ -141,6 +141,16 @@ const CasesPage = () => {
               <DialogHeader><DialogTitle className="font-serif">Create New Case</DialogTitle></DialogHeader>
               <div className="space-y-3 mt-2 max-h-[70vh] overflow-y-auto">
                 <div><Label className="text-muted-foreground text-xs">Case Title *</Label><Input value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} className="bg-background/50 border-border/30" /></div>
+                <div>
+                  <Label className="text-muted-foreground text-xs">CNR Number (auto-fetches judge, court & hearings from eCourts)</Label>
+                  <Input
+                    value={form.cnr_number}
+                    onChange={(e) => setForm({ ...form, cnr_number: e.target.value.toUpperCase() })}
+                    placeholder="e.g. DLHC010012342024"
+                    maxLength={16}
+                    className="bg-background/50 border-border/30 font-mono"
+                  />
+                </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div><Label className="text-muted-foreground text-xs">Case Number</Label><Input value={form.case_number} onChange={(e) => setForm({ ...form, case_number: e.target.value })} className="bg-background/50 border-border/30" /></div>
                   <div><Label className="text-muted-foreground text-xs">Status</Label>
