@@ -50,7 +50,7 @@ const CasesPage = () => {
   const [calendarMonth, setCalendarMonth] = useState(new Date());
   const [form, setForm] = useState({
     title: "", case_number: "", court: "", judge: "",
-    status: "active" as CaseStatus, practice_area: "", description: "", next_hearing_date: "", client_id: "",
+    status: "active" as CaseStatus, practice_area: "", description: "", next_hearing_date: "", client_id: "", cnr_number: "",
   });
 
   const fetchCases = async () => {
@@ -70,19 +70,37 @@ const CasesPage = () => {
   const handleCreate = async () => {
     if (!form.title.trim() || !user) return;
     setSaving(true);
-    const { error } = await supabase.from("cases").insert({
+    const cnr = form.cnr_number.trim().toUpperCase();
+    const cnrValid = /^[A-Z]{4}[0-9]{12}$/.test(cnr);
+    const { data: inserted, error } = await supabase.from("cases").insert({
       user_id: user.id, title: form.title, case_number: form.case_number || null,
       court: form.court || null, judge: form.judge || null, status: form.status,
       practice_area: form.practice_area || null, description: form.description || null,
       next_hearing_date: form.next_hearing_date || null,
       client_id: form.client_id || null,
-    });
+      cnr_number: cnr || null,
+      ecourts_sync_status: cnr && cnrValid ? "pending" : null,
+    }).select("id").maybeSingle();
     if (error) toast({ title: "Error", description: error.message, variant: "destructive" });
     else {
       toast({ title: "Case created" });
-      setForm({ title: "", case_number: "", court: "", judge: "", status: "active", practice_area: "", description: "", next_hearing_date: "", client_id: "" });
+      setForm({ title: "", case_number: "", court: "", judge: "", status: "active", practice_area: "", description: "", next_hearing_date: "", client_id: "", cnr_number: "" });
       setDialogOpen(false);
       fetchCases();
+      if (inserted?.id && cnr) {
+        if (!cnrValid) {
+          toast({ title: "CNR format invalid", description: "Expected 4 letters + 12 digits. Skipped eCourts sync.", variant: "destructive" });
+        } else {
+          toast({ title: "Syncing from eCourts…" });
+          const { data: syncRes, error: syncErr } = await supabase.functions.invoke("case-ecourts-sync", { body: { caseId: inserted.id } });
+          if (syncErr || !syncRes?.ok) {
+            toast({ title: "eCourts sync failed", description: syncRes?.error || syncErr?.message || "Try Refresh later", variant: "destructive" });
+          } else {
+            toast({ title: "eCourts data synced", description: `${syncRes.hearingCount || 0} upcoming hearing(s) imported.` });
+            fetchCases();
+          }
+        }
+      }
     }
     setSaving(false);
   };
