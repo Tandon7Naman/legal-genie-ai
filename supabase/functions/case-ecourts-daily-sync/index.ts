@@ -22,6 +22,35 @@ serve(async (req) => {
 
   const serviceClient = createClient(supaUrl, supaService);
 
+  // Authorization: require an authenticated admin caller.
+  const authHeader = req.headers.get("Authorization");
+  const token = authHeader?.replace("Bearer ", "");
+  if (!token) {
+    return new Response(JSON.stringify({ error: "Unauthorized" }), {
+      status: 401,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+  const { data: userData, error: userErr } = await serviceClient.auth.getUser(token);
+  if (userErr || !userData?.user) {
+    return new Response(JSON.stringify({ error: "Unauthorized" }), {
+      status: 401,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+  const { data: adminRow } = await serviceClient
+    .from("user_roles")
+    .select("role")
+    .eq("user_id", userData.user.id)
+    .eq("role", "admin")
+    .maybeSingle();
+  if (!adminRow) {
+    return new Response(JSON.stringify({ error: "Forbidden" }), {
+      status: 403,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
   // Pick cases with a CNR that haven't been synced in 20+ hours
   const cutoff = new Date(Date.now() - 20 * 3600 * 1000).toISOString();
   const { data: cases, error } = await serviceClient
@@ -33,7 +62,7 @@ serve(async (req) => {
 
   if (error) {
     console.error("daily-sync select error", error);
-    return new Response(JSON.stringify({ error: error.message }), {
+    return new Response(JSON.stringify({ error: "Internal server error" }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });

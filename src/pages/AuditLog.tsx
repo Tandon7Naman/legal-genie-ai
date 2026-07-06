@@ -85,7 +85,13 @@ const AuditLog = () => {
         JSON.stringify(l.details || {}),
       ]);
     });
-    const csv = rows.map((r) => r.map((c) => `"${c}"`).join(",")).join("\n");
+    const escapeCell = (v: string) => {
+      const s = String(v ?? "");
+      const escaped = s.replace(/"/g, '""');
+      const safe = /^[=+\-@\t\r]/.test(escaped) ? `'${escaped}` : escaped;
+      return `"${safe}"`;
+    };
+    const csv = rows.map((r) => r.map(escapeCell).join(",")).join("\n");
     const blob = new Blob([csv], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
