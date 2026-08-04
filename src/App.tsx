@@ -36,6 +36,7 @@ import Accessibility from "./pages/Accessibility";
 import KnowledgeBase from "./pages/KnowledgeBase";
 import AuditLog from "./pages/AuditLog";
 import CompliancePage from "./pages/Compliance";
+import OAuthConsent from "./pages/OAuthConsent";
 
 const queryClient = new QueryClient();
 
@@ -49,6 +50,7 @@ const App = () => (
           <Routes>
             <Route path="/" element={<Index />} />
             <Route path="/auth" element={<Auth />} />
+            <Route path="/.lovable/oauth/consent" element={<OAuthConsent />} />
             <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/complete-profile" element={<ProtectedRoute><CompleteProfile /></ProtectedRoute>} />
             <Route path="/privacy" element={<Privacy />} />

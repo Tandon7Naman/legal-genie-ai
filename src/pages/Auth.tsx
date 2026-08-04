@@ -28,6 +28,12 @@ const Auth = () => {
   const { user, loading: authLoading } = useAuth();
   const [searchParams] = useSearchParams();
 
+  // Where to return after auth (used by the OAuth consent flow).
+  const rawNext = searchParams.get("next");
+  const nextPath = rawNext && rawNext.startsWith("/") && !rawNext.startsWith("//") ? rawNext : null;
+  const postAuthTarget = nextPath ?? "/dashboard";
+  const returnUrl = `${window.location.origin}${nextPath ? `/auth?next=${encodeURIComponent(nextPath)}` : "/auth"}`;
+
   useEffect(() => {
     const m = searchParams.get("mode");
     if (m === "signup") setMode("signup");
@@ -38,9 +44,10 @@ const Auth = () => {
   // Redirect if already authenticated
   useEffect(() => {
     if (!authLoading && user) {
-      navigate("/dashboard", { replace: true });
+      if (nextPath) window.location.href = nextPath;
+      else navigate("/dashboard", { replace: true });
     }
-  }, [user, authLoading, navigate]);
+  }, [user, authLoading, navigate, nextPath]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -60,7 +67,8 @@ const Auth = () => {
       } else if (mode === "login") {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
-        navigate("/dashboard");
+        if (nextPath) window.location.href = nextPath;
+        else navigate(postAuthTarget);
       } else {
         const { error } = await supabase.auth.signUp({
           email,
@@ -73,7 +81,7 @@ const Auth = () => {
               ...(role === "student" && gradYear ? { expected_graduation_year: parseInt(gradYear) } : {}),
               ...((role === "law_firm" || role === "organization") && firmName ? { firm_name: firmName } : {}),
             },
-            emailRedirectTo: `${window.location.origin}/auth`,
+            emailRedirectTo: returnUrl,
           },
         });
         if (error) throw error;
@@ -91,7 +99,7 @@ const Auth = () => {
 
   const handleGoogleLogin = async () => {
     const { error } = await lovable.auth.signInWithOAuth("google", {
-      redirect_uri: `${window.location.origin}/auth`,
+      redirect_uri: returnUrl,
     });
     if (error) {
       toast({ title: "Error", description: error.message, variant: "destructive" });
