@@ -1,0 +1,187 @@
+{
+  "version": 1,
+  "sdk_version": "0.26.1",
+  "path": "/mcp",
+  "auth": {
+    "type": "oauth",
+    "issuer": "https://flfxjovxeeewldeunetc.supabase.co/auth/v1",
+    "accepted_audiences": [
+      "authenticated"
+    ]
+  },
+  "mcp": {
+    "server": {
+      "name": "legal-genie-ai",
+      "version": "0.1.0",
+      "title": "Legal Genie AI"
+    },
+    "tools": [
+      {
+        "name": "list_cases",
+        "title": "List cases",
+        "description": "List the signed-in user's legal cases, optionally filtered by status or a text search on the title.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "search": {
+              "type": "string",
+              "maxLength": 200,
+              "description": "Optional text to match against case titles."
+            },
+            "status": {
+              "type": "string",
+              "maxLength": 50,
+              "description": "Optional case status filter (e.g. active, closed)."
+            },
+            "limit": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20,
+              "description": "Maximum number of cases to return."
+            }
+          },
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "get_case",
+        "title": "Get case detail",
+        "description": "Fetch one case owned by the signed-in user, with its client, hearings and open tasks.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "case_id": {
+              "type": "string",
+              "format": "uuid",
+              "description": "The case id."
+            }
+          },
+          "required": [
+            "case_id"
+          ],
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "list_clients",
+        "title": "List clients",
+        "description": "List the signed-in user's clients, optionally filtered by a name search.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "search": {
+              "type": "string",
+              "maxLength": 200,
+              "description": "Optional text to match against client names."
+            },
+            "limit": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20,
+              "description": "Maximum number of clients to return."
+            }
+          },
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "list_upcoming_hearings",
+        "title": "List upcoming hearings",
+        "description": "List the signed-in user's hearings scheduled from today onwards, with case titles.",
+        "annotations": {
+          "readOnlyHint": true,
+          "idempotentHint": true,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "days": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 365,
+              "default": 30,
+              "description": "How many days ahead to look."
+            },
+            "limit": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 25,
+              "description": "Maximum number of hearings to return."
+            }
+          },
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      },
+      {
+        "name": "create_task",
+        "title": "Create case task",
+        "description": "Create a task on one of the signed-in user's cases.",
+        "annotations": {
+          "readOnlyHint": false,
+          "destructiveHint": false,
+          "openWorldHint": false
+        },
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "case_id": {
+              "type": "string",
+              "format": "uuid",
+              "description": "The case the task belongs to."
+            },
+            "title": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 300,
+              "description": "Short task title."
+            },
+            "description": {
+              "type": "string",
+              "maxLength": 4000,
+              "description": "Optional task detail."
+            },
+            "due_date": {
+              "type": "string",
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+              "description": "Optional due date as YYYY-MM-DD."
+            }
+          },
+          "required": [
+            "case_id",
+            "title"
+          ],
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        },
+        "outputSchema": null
+      }
+    ]
+  }
+}
