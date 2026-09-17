@@ -7,8 +7,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { Search, Shield, Users, Briefcase, BarChart3, FileText, TrendingUp, Activity } from "lucide-react";
+import { Search, Shield, Users, Briefcase, BarChart3, FileText, TrendingUp, Activity, Eye } from "lucide-react";
 import { motion } from "framer-motion";
+import { useViewAsRole } from "@/hooks/useViewAsRole";
+import { SELECTABLE_ROLES, ROLE_LABELS } from "@/lib/roleAccess";
 
 interface UserRow {
   user_id: string;
@@ -28,6 +30,7 @@ interface PlatformStats {
 
 const Admin = () => {
   const { toast } = useToast();
+  const { viewAsRole, setViewAsRole } = useViewAsRole();
   const [users, setUsers] = useState<UserRow[]>([]);
   const [search, setSearch] = useState("");
   const [filterRole, setFilterRole] = useState("all");
@@ -105,6 +108,38 @@ const Admin = () => {
   return (
     <div className="p-6">
       <h1 className="font-serif text-2xl font-bold mb-6">Admin Panel</h1>
+
+      <div className="mb-6 rounded-xl border border-border/20 bg-card/50 p-4 flex flex-col sm:flex-row sm:items-center gap-3">
+        <div className="flex items-start gap-3">
+          <Eye className="w-5 h-5 text-secondary mt-0.5" />
+          <div>
+            <p className="text-sm font-medium">View app as role</p>
+            <p className="text-xs text-muted-foreground">
+              Preview the sections a Student, Lawyer, Firm or Organization sees. Your own account type stays Admin.
+            </p>
+          </div>
+        </div>
+        <div className="sm:ml-auto flex items-center gap-2">
+          <Select
+            value={viewAsRole ?? "admin_self"}
+            onValueChange={(v) => setViewAsRole(v === "admin_self" ? null : (v as any))}
+          >
+            <SelectTrigger className="w-48 bg-background/50 border-border/30">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="admin_self">Admin (my own view)</SelectItem>
+              {SELECTABLE_ROLES.filter((r) => r !== "admin").map((r) => (
+                <SelectItem key={r} value={r}>{ROLE_LABELS[r]}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {viewAsRole && (
+            <Button variant="outline" size="sm" onClick={() => setViewAsRole(null)}>Reset</Button>
+          )}
+        </div>
+      </div>
+
 
       <Tabs defaultValue="users">
         <TabsList className="bg-card/50 border border-border/20 mb-6">
