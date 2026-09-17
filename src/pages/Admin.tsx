@@ -45,7 +45,12 @@ const Admin = () => {
     const { data: roles } = await supabase.from("user_roles").select("user_id, role");
     if (profiles && roles) {
       const roleMap = new Map<string, string>();
-      roles.forEach((r: any) => roleMap.set(r.user_id, r.role));
+      // A user can hold several roles (e.g. admin + account type).
+      // Show the account type, falling back to admin when that is the only role.
+      roles.forEach((r: any) => {
+        const existing = roleMap.get(r.user_id);
+        if (!existing || existing === "admin") roleMap.set(r.user_id, r.role);
+      });
       setUsers(profiles.map((p: any) => ({
         ...p,
         role: roleMap.get(p.user_id) || "individual_lawyer",
@@ -78,9 +83,38 @@ const Admin = () => {
   useEffect(() => { if (users.length > 0) fetchStats(); }, [users]);
 
   const changeRole = async (userId: string, newRole: string) => {
-    const { error } = await supabase.from("user_roles").update({ role: newRole as any }).eq("user_id", userId);
-    if (error) toast({ title: "Error", description: error.message, variant: "destructive" });
-    else { toast({ title: "Role updated" }); fetchUsers(); }
+    // Users may hold multiple roles. Replace only the account-type role and
+    // never touch an existing admin role, so admins can't lock themselves out.
+    const { data: existing, error: fetchError } = await supabase
+      .from("user_roles").select("id, role").eq("user_id", userId);
+    if (fetchError) {
+      toast({ title: "Error", description: fetchError.message, variant: "destructive" });
+      return;
+    }
+
+    const alreadyHasRole = (existing || []).some((r: any) => r.role === newRole);
+    const staleIds = (existing || [])
+      .filter((r: any) => r.role !== "admin" && r.role !== newRole)
+      .map((r: any) => r.id);
+
+    if (staleIds.length > 0) {
+      const { error } = await supabase.from("user_roles").delete().in("id", staleIds);
+      if (error) {
+        toast({ title: "Error", description: error.message, variant: "destructive" });
+        return;
+      }
+    }
+
+    if (!alreadyHasRole) {
+      const { error } = await supabase.from("user_roles").insert({ user_id: userId, role: newRole as any });
+      if (error) {
+        toast({ title: "Error", description: error.message, variant: "destructive" });
+        return;
+      }
+    }
+
+    toast({ title: "Role updated" });
+    fetchUsers();
   };
 
   const toggleFreeAccess = async (userId: string, current: boolean) => {
