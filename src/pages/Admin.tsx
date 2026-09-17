@@ -30,6 +30,7 @@ interface PlatformStats {
 
 const Admin = () => {
   const { toast } = useToast();
+  const { viewAsRole, setViewAsRole } = useViewAsRole();
   const [users, setUsers] = useState<UserRow[]>([]);
   const [search, setSearch] = useState("");
   const [filterRole, setFilterRole] = useState("all");
