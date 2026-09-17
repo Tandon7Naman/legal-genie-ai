@@ -45,7 +45,12 @@ const Admin = () => {
     const { data: roles } = await supabase.from("user_roles").select("user_id, role");
     if (profiles && roles) {
       const roleMap = new Map<string, string>();
-      roles.forEach((r: any) => roleMap.set(r.user_id, r.role));
+      // A user can hold several roles (e.g. admin + account type).
+      // Show the account type, falling back to admin when that is the only role.
+      roles.forEach((r: any) => {
+        const existing = roleMap.get(r.user_id);
+        if (!existing || existing === "admin") roleMap.set(r.user_id, r.role);
+      });
       setUsers(profiles.map((p: any) => ({
         ...p,
         role: roleMap.get(p.user_id) || "individual_lawyer",
