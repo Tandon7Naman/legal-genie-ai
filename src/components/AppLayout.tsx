@@ -23,6 +23,8 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     canAccessRoute(effectiveRole, location.pathname) || location.pathname === "/admin";
 
 
+  if (!allowed) return <Navigate to="/dashboard" replace />;
+
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full">
@@ -46,6 +48,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
             <GlobalSearch />
             <div className="w-8" />
           </header>
+          <RolePreviewBanner />
           <main className="flex-1">
             {children}
           </main>
