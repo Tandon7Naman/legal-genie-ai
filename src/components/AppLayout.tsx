@@ -7,12 +7,21 @@ import { ArrowLeft } from "lucide-react";
 import { ClearSampleDataButton } from "@/components/onboarding/ClearSampleDataButton";
 import { OnboardingTour } from "@/components/onboarding/OnboardingTour";
 import { useIdleLogout } from "@/hooks/useIdleLogout";
+import { RolePreviewBanner } from "@/components/RolePreviewBanner";
+import { useViewAsRole } from "@/hooks/useViewAsRole";
+import { canAccessRoute } from "@/lib/roleAccess";
+import { Navigate } from "react-router-dom";
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
   const navigate = useNavigate();
   const location = useLocation();
   const showBack = location.pathname !== "/dashboard";
+  const { effectiveRole } = useViewAsRole();
   useIdleLogout();
+
+  const allowed =
+    canAccessRoute(effectiveRole, location.pathname) || location.pathname === "/admin";
+
 
   return (
     <SidebarProvider>
