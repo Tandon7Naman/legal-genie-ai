@@ -22,8 +22,10 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
+import { useViewAsRole } from "@/hooks/useViewAsRole";
+import { canAccessRoute } from "@/lib/roleAccess";
 
-const mainItems = [
+const allItems = [
   { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
   { title: "Research", url: "/research", icon: Search },
   { title: "Drafting", url: "/drafting", icon: FileText },
@@ -49,6 +51,8 @@ export function AppSidebar() {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, profile, roles, isAdmin, signOut } = useAuth();
+  const { effectiveRole } = useViewAsRole();
+  const mainItems = allItems.filter((item) => canAccessRoute(effectiveRole, item.url));
   const [isDark, setIsDark] = useState(true);
 
   useEffect(() => {
