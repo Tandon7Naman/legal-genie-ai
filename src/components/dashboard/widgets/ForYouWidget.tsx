@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Loader2, Sparkles, RefreshCw, BookOpen, Scale, FileText, GraduationCap, Zap } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface Recommendation {
   title: string;
@@ -34,8 +35,14 @@ export const ForYouWidget = () => {
   const [loaded, setLoaded] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { session } = useAuth();
 
   const fetchRecommendations = async () => {
+    const { data: { session: current } } = await supabase.auth.getSession();
+    if (!current) {
+      setLoaded(true);
+      return;
+    }
     setLoading(true);
     try {
       const { data, error } = await supabase.functions.invoke("ai-recommendations");
@@ -45,7 +52,10 @@ export const ForYouWidget = () => {
       }
     } catch (err: any) {
       console.error("Recommendations error:", err);
-      toast({ title: "Could not load recommendations", description: err.message, variant: "destructive" });
+      const msg = String(err?.message ?? "");
+      if (!msg.includes("401")) {
+        toast({ title: "Could not load recommendations", description: msg, variant: "destructive" });
+      }
     } finally {
       setLoading(false);
       setLoaded(true);
@@ -53,8 +63,8 @@ export const ForYouWidget = () => {
   };
 
   useEffect(() => {
-    if (!loaded) fetchRecommendations();
-  }, [loaded]);
+    if (session && !loaded) fetchRecommendations();
+  }, [session, loaded]);
 
   if (loading && !loaded) {
     return (
