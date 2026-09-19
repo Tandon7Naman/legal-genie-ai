@@ -39,13 +39,16 @@ export const ForYouWidget = () => {
 
   const fetchRecommendations = async () => {
     const { data: { session: current } } = await supabase.auth.getSession();
-    if (!current) {
+    const accessToken = current?.access_token;
+    if (!accessToken) {
       setLoaded(true);
       return;
     }
     setLoading(true);
     try {
-      const { data, error } = await supabase.functions.invoke("ai-recommendations");
+      const { data, error } = await supabase.functions.invoke("ai-recommendations", {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
       if (error) throw error;
       if (data?.recommendations) {
         setRecommendations(data.recommendations);
