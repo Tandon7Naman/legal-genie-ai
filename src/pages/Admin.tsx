@@ -10,6 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Search, Shield, Users, Briefcase, BarChart3, FileText, TrendingUp, Activity, Eye } from "lucide-react";
 import { motion } from "framer-motion";
 import { useViewAsRole } from "@/hooks/useViewAsRole";
+import { useAuth } from "@/contexts/AuthContext";
 import { SELECTABLE_ROLES, ROLE_LABELS } from "@/lib/roleAccess";
 
 interface UserRow {
@@ -30,6 +31,7 @@ interface PlatformStats {
 
 const Admin = () => {
   const { toast } = useToast();
+  const { user, refreshUserData } = useAuth();
   const { viewAsRole, setViewAsRole } = useViewAsRole();
   const [users, setUsers] = useState<UserRow[]>([]);
   const [search, setSearch] = useState("");
@@ -114,6 +116,12 @@ const Admin = () => {
     }
 
     toast({ title: "Role updated" });
+    // When the admin changes their own role, preview the app as that role so
+    // the sidebar and pages switch immediately. Admin access is kept.
+    if (user && userId === user.id) {
+      setViewAsRole(newRole === "admin" ? null : (newRole as any));
+      refreshUserData();
+    }
     fetchUsers();
   };
 
@@ -297,6 +305,11 @@ const Admin = () => {
                             ))}
                           </SelectContent>
                         </Select>
+                        {user?.id === u.user_id && (
+                          <p className="text-[11px] text-muted-foreground mt-1 max-w-44">
+                            Changing your own role previews that role. You stay Admin.
+                          </p>
+                        )}
                       </TableCell>
                       <TableCell>
                         <Switch
