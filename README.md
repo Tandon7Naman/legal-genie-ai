@@ -1,73 +1,112 @@
-# Welcome to your Lovable project
+# Legal Genie AI (Tandon Associates)
 
-## Project info
+> AI-powered legal research and case-management platform built for Indian lawyers, law firms, corporate legal teams and law students.
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+**Live demo:** https://script-law-ai.lovable.app
 
-## How can I edit this code?
+## Features
 
-There are several ways of editing your application.
+All features below are implemented in this repository.
 
-**Use Lovable**
+### AI Legal Research
+- Grounded legal search across Indian case law and statutes, with results categorized by source quality (Binding, Persuasive, Secondary).
+- Dual-mode research workspace with separate prompts and tooling for professionals and students, switchable per user.
+- AI follow-up questions on any research result.
+- AI-generated IRAC case briefs and study flashcards from any research topic.
+- Statute Simplifier that explains Indian statutes in plain language.
+- Research collections to save and organize findings.
+- Streaming AI responses with per-record deep analysis of judgments, orders and hearings.
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
+### Case & Practice Management
+- Unified case management with clients, hearings, calendar events and document links.
+- Live eCourts India integration: CNR-number lookup, case details, hearing schedules, case-transfer details, and per-record AI case analysis with in-app PDF preview and download.
+- Automatic eCourts synchronization for tracked cases (on-demand refresh plus a scheduled daily sync).
+- Conflict checker that cross-references party names against existing clients and cases.
+- Contract tracking, client invoicing and billable-hours finance management.
+- Team management with staff roles (law firms and organizations).
+- Corporate compliance checklists and a risk register.
+- Immutable audit trail of user activity for compliance tracking.
 
-Changes made via Lovable will be committed automatically to this repo.
+### AI Drafting Lab
+- Draft generation for ~45 Indian legal document types (writs, plaints, written statements, agreements, notices, Vakalatnama and more).
+- Brief Analyzer to review uploaded or pasted drafts.
 
-**Use your preferred IDE**
+### Student Hub
+- Moot court simulator, IRAC case-brief generator and statute simplification tools.
+- Knowledge base with landmark cases, IPC/CrPC guides and IRAC study material.
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+### Platform
+- Role-based access: student, individual lawyer, law firm, organization and admin — each role sees only its own sections.
+- Admin portal for user/role management, complimentary access grants and platform analytics; admins can preview the app as any role.
+- Customizable dashboard with drag-and-drop widgets and persisted layout/theme preferences.
+- Global search (Cmd/Ctrl+K) across cases, clients and research.
+- AI-powered personalized recommendations on the dashboard.
+- User settings including profile, appearance and configurable idle-timeout auto-logout.
+- First-login onboarding tour with one-click removable sample data.
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+## Tech Stack
 
-Follow these steps:
+- **Frontend:** React 18, TypeScript, Vite, Tailwind CSS, shadcn/ui, TanStack Query, React Router
+- **Backend:** Supabase — Postgres with row-level security (RLS), authentication, storage, realtime, and serverless edge functions
+- **AI:** Lovable AI gateway (Gemini-family models), called only from edge functions
+
+## Architecture & Security
+
+The app is a client-side SPA talking directly to Supabase for data and authentication. Every database table is protected by row-level security policies, so users can only read and write their own records.
+
+All AI and third-party API calls (legal research, drafting, analysis, eCourts) run inside **Supabase edge functions**. Each function verifies the caller's JWT, and provider credentials (`LOVABLE_API_KEY`, `ECOURTS_API_KEY`, etc.) are stored as server-side function secrets — **no provider keys ever reach the browser**. The only values shipped to the client are the Supabase URL and the publishable (anon) key, which are safe to be public.
+
+Roles are stored in a dedicated `user_roles` table and enforced through RLS policies and edge-function checks, never through client-editable metadata.
+
+## Local Setup
 
 ```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+# 1. Clone the repository
+git clone <repo-url>
+cd legal-genie-ai
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+# 2. Install dependencies
+npm install
 
-# Step 3: Install the necessary dependencies.
-npm i
+# 3. Configure environment
+cp .env.example .env
+# Fill in your project's values (URL and publishable key are safe client-side values)
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
+# 4. Start the dev server
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+Other scripts:
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+```sh
+npm run build      # production build
+npm run test       # run vitest suite
+npm run lint       # eslint
+```
 
-**Use GitHub Codespaces**
+Deployments are managed through Lovable; the Supabase backend, edge functions and secrets are configured there.
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+## Project Structure
 
-## What technologies are used for this project?
+```
+├── src/
+│   ├── components/          # UI components
+│   │   ├── dashboard/       # Dashboard and drag-and-drop widgets
+│   │   ├── layout/          # Sidebar, topbar, app shell
+│   │   ├── settings/        # Settings sections
+│   │   └── ui/              # shadcn/ui primitives
+│   ├── pages/               # Route pages (Dashboard, Research, Cases, ECourts, Admin, …)
+│   ├── hooks/               # Auth, onboarding, idle-logout and other hooks
+│   ├── contexts/            # Auth and role-view providers
+│   ├── lib/                 # Role access, SEO, MCP integration, utilities
+│   └── integrations/supabase/  # Supabase client and generated types
+├── supabase/
+│   └── functions/           # Edge functions (AI + eCourts): legal-search, case-analyze,
+│                            # brief-analyze, document-draft, ecourts-track, order-analyze, …
+├── public/                  # Static assets, sitemap.xml, robots.txt
+└── index.html
+```
 
-This project is built with:
+## License
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
-
-## How can I deploy this project?
-
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
-
-## Can I connect a custom domain to my Lovable project?
-
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+MIT — see [LICENSE](LICENSE).
