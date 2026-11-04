@@ -50,6 +50,33 @@ export type Database = {
         }
         Relationships: []
       }
+      ai_daily_usage: {
+        Row: {
+          created_at: string
+          id: string
+          query_count: number
+          updated_at: string
+          usage_date: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          query_count?: number
+          updated_at?: string
+          usage_date: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          query_count?: number
+          updated_at?: string
+          usage_date?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       billable_hours: {
         Row: {
           case_id: string | null
@@ -1014,6 +1041,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_ai_usage_today: { Args: never; Returns: Json }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -1021,10 +1049,12 @@ export type Database = {
         }
         Returns: boolean
       }
+      refund_ai_query: { Args: never; Returns: undefined }
       set_initial_role: {
         Args: { _role: Database["public"]["Enums"]["app_role"] }
         Returns: undefined
       }
+      try_consume_ai_query: { Args: never; Returns: Json }
     }
     Enums: {
       app_role:
