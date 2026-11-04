@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { checkQuota, refundQuota, quotaExceededResponse } from "../_shared/quota.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -30,6 +31,11 @@ serve(async (req) => {
     }
 
     const { query, filters, mode } = await req.json();
+
+    // Student daily quota: reserve a query before calling the AI gateway.
+    const quota = await checkQuota(authHeader);
+    if (!quota.allowed) return quotaExceededResponse();
+
     if (typeof query !== "string" || query.length === 0 || query.length > 10_000) {
       return new Response(JSON.stringify({ error: "query must be a string up to 10000 chars" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
