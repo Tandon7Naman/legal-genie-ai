@@ -32,10 +32,6 @@ serve(async (req) => {
 
     const { query, filters, mode } = await req.json();
 
-    // Student daily quota: reserve a query before calling the AI gateway.
-    const quota = await checkQuota(authHeader);
-    if (!quota.allowed) return quotaExceededResponse();
-
     if (typeof query !== "string" || query.length === 0 || query.length > 10_000) {
       return new Response(JSON.stringify({ error: "query must be a string up to 10000 chars" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
