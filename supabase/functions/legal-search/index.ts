@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { checkQuota, refundQuota, quotaExceededResponse } from "../_shared/quota.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -30,6 +31,7 @@ serve(async (req) => {
     }
 
     const { query, filters, mode } = await req.json();
+
     if (typeof query !== "string" || query.length === 0 || query.length > 10_000) {
       return new Response(JSON.stringify({ error: "query must be a string up to 10000 chars" }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -44,6 +46,10 @@ serve(async (req) => {
     }
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) { console.error("LOVABLE_API_KEY is not configured"); throw new Error("Service temporarily unavailable"); }
+
+    // Student daily quota: reserve a query before calling the AI gateway.
+    const quota = await checkQuota(authHeader);
+    if (!quota.allowed) return quotaExceededResponse();
 
     const isStudent = mode === "student";
     const systemPrompt = isStudent ? `You are a friendly Indian law tutor for students. Provide accurate, grounded answers using simple language, definitions for jargon, and study-friendly structure.
@@ -101,6 +107,8 @@ Always cite specific section numbers and case names. If you're uncertain about a
     });
 
     if (!response.ok) {
+      // The AI call failed — give the reserved query back so failures never burn quota.
+      await refundQuota(authHeader);
       if (response.status === 429) {
         return new Response(JSON.stringify({ error: "Rate limit exceeded. Please try again later." }), {
           status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
