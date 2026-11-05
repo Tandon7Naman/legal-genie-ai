@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { checkQuota, refundQuota, quotaExceededResponse } from "../_shared/quota.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -21,6 +22,9 @@ serve(async (req) => {
     }
     const n = Math.min(Math.max(parseInt(count) || 6, 3), 12);
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY")!;
+    // Student daily quota: reserve a query before calling the AI gateway.
+    const quota = await checkQuota(authHeader);
+    if (!quota.allowed) return quotaExceededResponse();
     const sys = `Create ${n} concise study flashcards for an Indian law student from the source. Return STRICT JSON only: {"cards":[{"question":"string","answer":"string"}]}. Questions test understanding of statutes, sections, ratios, and key holdings. Keep answers under 60 words.`;
     const r = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -32,6 +36,8 @@ serve(async (req) => {
       }),
     });
     if (!r.ok) {
+      // The AI call failed — give the reserved query back so failures never burn quota.
+      await refundQuota(authHeader);
       if (r.status === 429) return new Response(JSON.stringify({ error: "Rate limited" }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       if (r.status === 402) return new Response(JSON.stringify({ error: "AI credits exhausted" }), { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       return new Response(JSON.stringify({ error: "AI service error" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });

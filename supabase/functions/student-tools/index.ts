@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { checkQuota, refundQuota, quotaExceededResponse } from "../_shared/quota.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -125,6 +126,10 @@ serve(async (req) => {
 
     const { system, user } = promptFn(body);
 
+    // Student daily quota: reserve a query before calling the AI gateway.
+    const quota = await checkQuota(authHeader);
+    if (!quota.allowed) return quotaExceededResponse();
+
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -142,6 +147,8 @@ serve(async (req) => {
     });
 
     if (!response.ok) {
+      // The AI call failed — give the reserved query back so failures never burn quota.
+      await refundQuota(authHeader);
       if (response.status === 429) {
         return new Response(JSON.stringify({ error: "Rate limit exceeded." }), {
           status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
