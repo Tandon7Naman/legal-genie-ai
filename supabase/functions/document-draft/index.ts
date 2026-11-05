@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { checkQuota, refundQuota, quotaExceededResponse } from "../_shared/quota.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -50,6 +51,10 @@ serve(async (req) => {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) { console.error("LOVABLE_API_KEY is not configured"); throw new Error("Service temporarily unavailable"); }
 
+    // Student daily quota: reserve a query before calling the AI gateway.
+    const quota = await checkQuota(authHeader);
+    if (!quota.allowed) return quotaExceededResponse();
+
     const systemPrompt = `You are an expert Indian legal document drafter. Generate professional, court-ready legal documents following Indian legal standards and formatting conventions.
 
 Guidelines:
@@ -93,6 +98,8 @@ Generate the complete document with placeholders like [PARTY_NAME], [DATE], [ADD
     });
 
     if (!response.ok) {
+      // The AI call failed — give the reserved query back so failures never burn quota.
+      await refundQuota(authHeader);
       if (response.status === 429) {
         return new Response(JSON.stringify({ error: "Rate limit exceeded." }), {
           status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },

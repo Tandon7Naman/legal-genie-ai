@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { checkQuota, refundQuota, quotaExceededResponse } from "../_shared/quota.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -20,6 +21,9 @@ serve(async (req) => {
       return new Response(JSON.stringify({ error: "Invalid source" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });
     }
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY")!;
+    // Student daily quota: reserve a query before calling the AI gateway.
+    const quota = await checkQuota(authHeader);
+    if (!quota.allowed) return quotaExceededResponse();
     const sys = `You restructure Indian legal research into an IRAC brief. Return STRICT JSON only, no markdown fences, matching:
 {"title":"string","issue":"string","rule":"string","application":"string","conclusion":"string","citations":[{"text":"string","court":"string|null"}]}
 Be concise, accurate to Indian statutes/cases, and do not invent citations.`;
@@ -33,6 +37,8 @@ Be concise, accurate to Indian statutes/cases, and do not invent citations.`;
       }),
     });
     if (!r.ok) {
+      // The AI call failed — give the reserved query back so failures never burn quota.
+      await refundQuota(authHeader);
       if (r.status === 429) return new Response(JSON.stringify({ error: "Rate limited" }), { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       if (r.status === 402) return new Response(JSON.stringify({ error: "AI credits exhausted" }), { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } });
       return new Response(JSON.stringify({ error: "AI service error" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
