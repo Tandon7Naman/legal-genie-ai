@@ -14,12 +14,13 @@ export function useAiQuota(userId?: string) {
 
   const refresh = useCallback(async () => {
     const { data, error } = await supabase.rpc("get_ai_usage_today");
-    if (!error && data) {
+    if (!error && data && typeof data === "object" && !Array.isArray(data)) {
+      const d = data as Record<string, unknown>;
       setQuota({
-        limited: !!data.limited,
-        used: data.used ?? 0,
-        limit: data.limit ?? 5,
-        remaining: data.remaining ?? 0,
+        limited: !!d.limited,
+        used: typeof d.used === "number" ? d.used : 0,
+        limit: typeof d.limit === "number" ? d.limit : 5,
+        remaining: typeof d.remaining === "number" ? d.remaining : 0,
       });
     }
   }, []);
