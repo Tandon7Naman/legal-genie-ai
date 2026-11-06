@@ -150,6 +150,7 @@ const ResearchPage = () => {
     if (!query.trim()) return;
     setLoading(true);
     setResult("");
+    setLimitHit(false);
     setFollowups([]);
     let accumulated = "";
     const filters: Record<string, string> = {};
@@ -169,7 +170,12 @@ const ResearchPage = () => {
       });
       saveToHistory(query, "search", filters);
     } catch (err: any) {
-      toast({ title: "Error", description: err.message, variant: "destructive" });
+      if (typeof err?.message === "string" && err.message.includes("Daily limit")) {
+        setLimitHit(true);
+        refreshQuota();
+      } else {
+        toast({ title: "Error", description: err.message, variant: "destructive" });
+      }
       setLoading(false);
     }
   };
@@ -178,6 +184,7 @@ const ResearchPage = () => {
     if (!caseDetails.trim()) return;
     setLoading(true);
     setResult("");
+    setLimitHit(false);
     setFollowups([]);
     let accumulated = "";
     try {
@@ -190,7 +197,12 @@ const ResearchPage = () => {
       });
       saveToHistory(caseDetails.slice(0, 200), "analyze", {});
     } catch (err: any) {
-      toast({ title: "Error", description: err.message, variant: "destructive" });
+      if (typeof err?.message === "string" && err.message.includes("Daily limit")) {
+        setLimitHit(true);
+        refreshQuota();
+      } else {
+        toast({ title: "Error", description: err.message, variant: "destructive" });
+      }
       setLoading(false);
     }
   };
