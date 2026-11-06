@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { motion } from "framer-motion";
-import { Search, Loader2, History, Sparkles, FileSearch, Filter, Copy, Check, Trash2, BookOpen, BookmarkPlus, Scale, GraduationCap } from "lucide-react";
+import { Search, Loader2, History, Sparkles, FileSearch, Filter, Copy, Check, Trash2, BookOpen, BookmarkPlus, Scale, GraduationCap, Zap, Clock } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { SmartSuggestions } from "@/components/research/SmartSuggestions";
 import { SourceQualityPanel } from "@/components/research/SourceQualityPanel";
@@ -18,6 +18,7 @@ import { SaveToCollectionDialog } from "@/components/research/SaveToCollectionDi
 import { FlashcardsDialog } from "@/components/research/FlashcardsDialog";
 import { IracBriefDialog } from "@/components/research/IracBriefDialog";
 import { StatuteSimplifier } from "@/components/research/StatuteSimplifier";
+import { useAiQuota } from "@/hooks/useAiQuota";
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 
@@ -87,6 +88,8 @@ const ResearchPage = () => {
 
   const getToken = () => session?.access_token || "";
   const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+  const { quota, refresh: refreshQuota } = useAiQuota(user?.id);
+  const [limitHit, setLimitHit] = useState(false);
 
   // Load research mode preference (default by role)
   useEffect(() => {
@@ -147,6 +150,7 @@ const ResearchPage = () => {
     if (!query.trim()) return;
     setLoading(true);
     setResult("");
+    setLimitHit(false);
     setFollowups([]);
     let accumulated = "";
     const filters: Record<string, string> = {};
@@ -166,7 +170,12 @@ const ResearchPage = () => {
       });
       saveToHistory(query, "search", filters);
     } catch (err: any) {
-      toast({ title: "Error", description: err.message, variant: "destructive" });
+      if (typeof err?.message === "string" && err.message.includes("Daily limit")) {
+        setLimitHit(true);
+        refreshQuota();
+      } else {
+        toast({ title: "Error", description: err.message, variant: "destructive" });
+      }
       setLoading(false);
     }
   };
@@ -175,6 +184,7 @@ const ResearchPage = () => {
     if (!caseDetails.trim()) return;
     setLoading(true);
     setResult("");
+    setLimitHit(false);
     setFollowups([]);
     let accumulated = "";
     try {
@@ -187,7 +197,12 @@ const ResearchPage = () => {
       });
       saveToHistory(caseDetails.slice(0, 200), "analyze", {});
     } catch (err: any) {
-      toast({ title: "Error", description: err.message, variant: "destructive" });
+      if (typeof err?.message === "string" && err.message.includes("Daily limit")) {
+        setLimitHit(true);
+        refreshQuota();
+      } else {
+        toast({ title: "Error", description: err.message, variant: "destructive" });
+      }
       setLoading(false);
     }
   };
@@ -201,14 +216,22 @@ const ResearchPage = () => {
 
   return (
     <div className="p-6 max-w-4xl mx-auto">
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center justify-between gap-3 mb-4">
         <div>
           <h1 className="font-serif text-2xl font-semibold">Research</h1>
           <p className="text-xs text-muted-foreground mt-0.5">
             {mode === "student" ? "Student mode — IRAC walkthroughs, plain-English statutes, flashcards." : "Professional mode — grounded case law, IRAC briefs, save to collections."}
           </p>
         </div>
-        <ModeToggle mode={mode} onChange={updateMode} />
+        <div className="flex items-center gap-3 shrink-0">
+          {quota.limited && (
+            <span className="hidden sm:inline-flex items-center gap-1.5 text-xs text-muted-foreground border border-border/40 rounded-full px-3 py-1.5">
+              <Zap className="w-3.5 h-3.5 text-accent" />
+              {quota.remaining} of {quota.limit} free AI queries left today
+            </span>
+          )}
+          <ModeToggle mode={mode} onChange={updateMode} />
+        </div>
       </div>
       <Tabs value={activeTab} onValueChange={(v) => {
         // Carry topic across tabs
@@ -233,6 +256,18 @@ const ResearchPage = () => {
         </TabsList>
 
         <TabsContent value="search">
+          {limitHit && (
+            <div className="flex items-start gap-3 p-4 rounded-xl border border-border bg-card/60 mb-4">
+              <Clock className="w-5 h-5 text-muted-foreground mt-0.5" />
+              <div>
+                <p className="text-sm font-medium">Daily limit reached</p>
+                <p className="text-xs text-muted-foreground">
+                  You've used all {quota.limit} free AI queries for today. Your allowance resets at midnight (IST).
+                  Your saved collections and search history remain available in the meantime.
+                </p>
+              </div>
+            </div>
+          )}
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-4">
             <div className="relative">
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
