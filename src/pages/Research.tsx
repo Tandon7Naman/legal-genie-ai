@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { motion } from "framer-motion";
-import { Search, Loader2, History, Sparkles, FileSearch, Filter, Copy, Check, Trash2, BookOpen, BookmarkPlus, Scale, GraduationCap } from "lucide-react";
+import { Search, Loader2, History, Sparkles, FileSearch, Filter, Copy, Check, Trash2, BookOpen, BookmarkPlus, Scale, GraduationCap, Zap, Clock } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { SmartSuggestions } from "@/components/research/SmartSuggestions";
 import { SourceQualityPanel } from "@/components/research/SourceQualityPanel";
@@ -18,6 +18,7 @@ import { SaveToCollectionDialog } from "@/components/research/SaveToCollectionDi
 import { FlashcardsDialog } from "@/components/research/FlashcardsDialog";
 import { IracBriefDialog } from "@/components/research/IracBriefDialog";
 import { StatuteSimplifier } from "@/components/research/StatuteSimplifier";
+import { useAiQuota } from "@/hooks/useAiQuota";
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 
@@ -87,6 +88,8 @@ const ResearchPage = () => {
 
   const getToken = () => session?.access_token || "";
   const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
+  const { quota, refresh: refreshQuota } = useAiQuota(user?.id);
+  const [limitHit, setLimitHit] = useState(false);
 
   // Load research mode preference (default by role)
   useEffect(() => {
