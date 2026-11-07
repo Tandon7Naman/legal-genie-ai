@@ -22,10 +22,17 @@ import { useAiQuota } from "@/hooks/useAiQuota";
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 
+export interface GroundingInfo {
+  status: "verified" | "ai_only";
+  provider: string | null;
+  sources: { title: string; url: string; court: string | null }[];
+}
+
 async function streamFromEdge({
-  functionName, body, onDelta, onDone, token,
+  functionName, body, onDelta, onDone, token, onGrounding,
 }: {
   functionName: string; body: Record<string, unknown>; onDelta: (text: string) => void; onDone: () => void; token: string;
+  onGrounding?: (g: GroundingInfo) => void;
 }) {
   const resp = await fetch(`${SUPABASE_URL}/functions/v1/${functionName}`, {
     method: "POST",
@@ -35,6 +42,10 @@ async function streamFromEdge({
   if (!resp.ok) {
     const err = await resp.json().catch(() => ({ error: "Request failed" }));
     throw new Error(err.error || `Error ${resp.status}`);
+  }
+  const gh = resp.headers.get("x-grounding");
+  if (gh && onGrounding) {
+    try { onGrounding(JSON.parse(decodeURIComponent(gh))); } catch {}
   }
   if (!resp.body) throw new Error("No response body");
   const reader = resp.body.getReader();
@@ -90,6 +101,7 @@ const ResearchPage = () => {
   const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
   const { quota, refresh: refreshQuota } = useAiQuota(user?.id);
   const [limitHit, setLimitHit] = useState(false);
+  const [grounding, setGrounding] = useState<GroundingInfo | null>(null);
 
   // Load research mode preference (default by role)
   useEffect(() => {
@@ -151,6 +163,7 @@ const ResearchPage = () => {
     setLoading(true);
     setResult("");
     setLimitHit(false);
+    setGrounding(null);
     setFollowups([]);
     let accumulated = "";
     const filters: Record<string, string> = {};
@@ -165,7 +178,8 @@ const ResearchPage = () => {
         functionName: "legal-search",
         body: { query, filters: Object.keys(filters).length > 0 ? filters : undefined, mode },
         onDelta: (chunk) => { accumulated += chunk; setResult(accumulated); },
-        onDone: () => { setLoading(false); fetchFollowups(query, accumulated); },
+        onDone: () => { setLoading(false); fetchFollowups(query, accumulated); refreshQuota(); },
+        onGrounding: setGrounding,
         token: getToken(),
       });
       saveToHistory(query, "search", filters);
