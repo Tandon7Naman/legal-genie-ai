@@ -14,3 +14,6 @@
 
 ## Dev-only preview warnings
 - React "cannot be given refs" console warnings in the local preview come from Lovable's dev-only component tagger, not app code; they never appear on the published site. Do not chase or "fix" them in source. Why: verified 0 warnings without the tagger vs 30 with it.
+
+## Legal source grounding
+- Legal-source retrieval lives in `supabase/functions/_shared/grounding.ts` behind a provider list; functions inject `groundingContext()` into the prompt and return the `x-grounding` header so the UI can label answers "Verified sources" or "AI knowledge only". Add new sources as providers there rather than inside individual functions. Why: one swappable place, honest labelling everywhere.
