@@ -396,6 +396,30 @@ const ResearchPage = () => {
       {(result || loading) && (
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="mt-8">
           {/* Source Quality Assessment */}
+          {grounding && activeTab === "search" && (
+            <div className={`mb-4 p-4 rounded-xl border ${grounding.status === "verified" ? "border-secondary/50 bg-secondary/10" : "border-border bg-muted/40"}`}>
+              <p className="text-sm font-medium flex items-center gap-2">
+                {grounding.status === "verified" ? <Check className="w-4 h-4 text-secondary" /> : <Scale className="w-4 h-4 text-muted-foreground" />}
+                {grounding.status === "verified" ? `Verified sources · ${grounding.provider}` : "AI knowledge only"}
+              </p>
+              {grounding.status === "verified" ? (
+                <ul className="mt-2 space-y-1">
+                  {grounding.sources.map((s, i) => (
+                    <li key={s.url} className="text-xs">
+                      <a href={s.url} target="_blank" rel="noopener noreferrer" className="underline underline-offset-2 hover:text-secondary">
+                        [{i + 1}] {s.title}
+                      </a>
+                      {s.court && <span className="text-muted-foreground"> — {s.court}</span>}
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-xs text-muted-foreground mt-1">
+                  This answer comes from the AI's general knowledge, not a live legal database. Check every citation against the original judgment before relying on it.
+                </p>
+              )}
+            </div>
+          )}
           {result && activeTab === "search" && !loading && (
             <SourceQualityPanel markdown={result} />
           )}
