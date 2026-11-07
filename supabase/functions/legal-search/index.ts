@@ -1,9 +1,11 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { checkQuota, refundQuota, quotaExceededResponse } from "../_shared/quota.ts";
+import { retrieveSources, groundingContext, groundingHeader } from "../_shared/grounding.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
+  "Access-Control-Expose-Headers": "x-grounding",
   "Access-Control-Allow-Headers":
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
@@ -90,6 +92,9 @@ Always cite specific section numbers and case names. If you're uncertain about a
       }
     }
 
+    const grounding = await retrieveSources(query);
+    userPrompt += groundingContext(grounding);
+
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -97,7 +102,7 @@ Always cite specific section numbers and case names. If you're uncertain about a
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
+        model: "openai/gpt-6-astra",
         messages: [
           { role: "system", content: systemPrompt },
           { role: "user", content: userPrompt },
@@ -127,7 +132,7 @@ Always cite specific section numbers and case names. If you're uncertain about a
     }
 
     return new Response(response.body, {
-      headers: { ...corsHeaders, "Content-Type": "text/event-stream" },
+      headers: { ...corsHeaders, "Content-Type": "text/event-stream", "x-grounding": groundingHeader(grounding) },
     });
   } catch (e) {
     console.error("legal-search error:", e);
